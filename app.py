@@ -74,7 +74,7 @@ def load_single_file(file, sheet_name=None):
             
         headers.append(final_h)
         
-    # 4. 列名去重（解决终端里的 TypeError 问题）
+    # 4. 列名去重
     final_headers = []
     counts = {}
     for h in headers:
@@ -91,18 +91,18 @@ def load_single_file(file, sheet_name=None):
         second_row_numeric_ratio = pd.to_numeric(df_raw.iloc[header_row_idx + 1], errors='coerce').notna().mean()
         if second_row_numeric_ratio < 0.3:
             data_start_row = header_row_idx + 2
-
-# 6. 组装最终数据
-df = df_raw.iloc[data_start_row:].copy()
-df.columns = final_headers
-df = df.reset_index(drop=True)
-
-# 🌟 新增：安全回退机制
-# 如果智能解析后，数据行数连1行都没有，说明猜错了，直接回退到默认读法！
-if len(df) == 0:
-    df = pd.read_excel(file, sheet_name=sheet_name or 0)
+            
+    # 6. 组装最终数据
+    df = df_raw.iloc[data_start_row:].copy()
+    df.columns = final_headers
+    df = df.reset_index(drop=True)
     
-return df
+    # 🌟 新增：安全回退机制
+    # 如果智能解析后，数据行数连1行都没有，说明猜错了，直接回退到默认读法！
+    if len(df) == 0:
+        df = pd.read_excel(file, sheet_name=sheet_name or 0)
+        
+    return df
 # ========== 类型识别与清洗逻辑 ==========
 TIME_KEYWORDS = ["date", "time", "日期", "时间", "年", "月", "日", "dt", "timestamp"]
 ID_KEYWORDS = ["id", "编号", "序号", "学号", "工号"]
@@ -451,4 +451,4 @@ with tab4:
         st.download_button("⬇️ 下载 .md 文件", data=md.getvalue(), file_name="智析_分析报告.md", mime="text/markdown")
 
 st.markdown("---")
-st.caption("智析 v1.5｜多轮对话版")
+st.caption("智析 v1.6｜多轮对话版")
