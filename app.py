@@ -32,16 +32,83 @@ def read_csv_smart(file):
     file.seek(0)
     return pd.read_csv(file, encoding="utf-8", errors="replace")
 
+import re # 如果文件开头没引入 re，记得加上
+
 def load_single_file(file, sheet_name=None):
     name = file.name.lower()
     if name.endswith(".csv"):
         return read_csv_smart(file)
-    return pd.read_excel(file, sheet_name=sheet_name or 0)
+    
+    df_raw = pd.read_excel(file, sheet_name=sheet_name or 0, header=None)
+    
+    # 1. 找真正的表头行
+    header_row_idx = 0
+    for i in range(min(10, len(df_raw))):
+        row_str = " ".join([str(x) for x in df_raw.iloc[i].values if pd.notna(x)])
+        if any(kw in row_str for kw in ["姓名", "班级", "总分", "学号", "日期"]):
+            header_row_idx = i
+            break
+            
+    headers = []
+    for col in range(df_raw.shape[1]):
+        h1 = str(df_raw.iloc[header_row_idx, col]).strip() if pd.notna(df_raw.iloc[header_row_idx, col]) else ""
+        h2 = ""
+        if header_row_idx + 1 < len(df_raw):
+            h2 = str(df_raw.iloc[header_row_idx + 1, col]).strip() if pd.notna(df_raw.iloc[header_row_idx + 1, col]) else ""
+        
+        if "Unnamed" in h1: h1 = ""
+        if "Unnamed" in h2: h2 = ""
+
+        final_h = h1
+        
+        # 2. 智能拼接（防止把第一行数据当表头）
+        if h1 in ["姓名", "班级", "学号", "选科", "考号"]:
+            final_h = h1
+        elif h2 and h2 != h1:
+            if not h2.isdigit() and len(h2) <= 4:
+                final_h = f"{h1}_{h2}" if h1 else h2
+            
+        # 3. 处理空列名
+        if not final_h:
+            final_h = f"空列_{col}"
+            
+        headers.append(final_h)
+        
+    # 4. 列名去重（解决终端里的 TypeError 问题）
+    final_headers = []
+    counts = {}
+    for h in headers:
+        if h in counts:
+            counts[h] += 1
+            final_headers.append(f"{h}_{counts[h]}")
+        else:
+            counts[h] = 1
+            final_headers.append(h)
+            
+    # 5. 判断数据从哪行开始
+    data_start_row = header_row_idx + 1
+    if header_row_idx + 1 < len(df_raw):
+        second_row_numeric_ratio = pd.to_numeric(df_raw.iloc[header_row_idx + 1], errors='coerce').notna().mean()
+        if second_row_numeric_ratio < 0.3:
+            data_start_row = header_row_idx + 2
+            
+    # 6. 组装最终数据
+    df = df_raw.iloc[data_start_row:].copy()
+    df.columns = final_headers
+    df = df.reset_index(drop=True)
+    return df
 # ========== 类型识别与清洗逻辑 ==========
 TIME_KEYWORDS = ["date", "time", "日期", "时间", "年", "月", "日", "dt", "timestamp"]
 ID_KEYWORDS = ["id", "编号", "序号", "学号", "工号"]
 
 def detect_column_type(series: pd.Series, col_name: str = ""):
+    # 🌟 新增：如果传入的是多列 DataFrame，强行取第一列
+    if isinstance(series, pd.DataFrame):
+        if series.shape[1] > 0:
+            series = series.iloc[:, 0]
+        else:
+            return "empty"
+
     s = series.dropna()
     if len(s) == 0: return "empty"
     if pd.api.types.is_numeric_dtype(s):
@@ -50,17 +117,14 @@ def detect_column_type(series: pd.Series, col_name: str = ""):
         return "numeric"
     numeric_ratio = pd.to_numeric(s, errors="coerce").notna().mean()
     if numeric_ratio > 0.8: return "numeric"
-    
     name_hint = any(kw in str(col_name).lower() for kw in TIME_KEYWORDS)
     has_sep = s.astype(str).str.contains(r"[-/:年月日]", regex=True).mean() > 0.5
     if name_hint or has_sep:
         dt_ratio = pd.to_datetime(s, errors="coerce").notna().mean()
         if dt_ratio > 0.8: return "datetime"
-        
     unique_ratio = s.nunique() / len(s)
     if s.nunique() <= 50 or unique_ratio < 0.5: return "categorical"
-    return "text"
-
+    return "text"  
 def analyze_columns(df):
     return {c: detect_column_type(df[c], c) for c in df.columns}
 
@@ -381,4 +445,4 @@ with tab4:
         st.download_button("⬇️ 下载 .md 文件", data=md.getvalue(), file_name="智析_分析报告.md", mime="text/markdown")
 
 st.markdown("---")
-st.caption("智析 v1.4｜多轮对话版")
+st.caption("智析 v1.5｜多轮对话版")
