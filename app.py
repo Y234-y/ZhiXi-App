@@ -458,6 +458,7 @@ with tab3:
             elif chart_type == "饼图":
                 vc = df[x_sel].value_counts().head(10).reset_index(); vc.columns = [x_sel, "count"]
                 fig = px.pie(vc, names=x_sel, values="count")
+            fig.update_xaxes(tickangle=-45)  # 新增：让 X 轴名字倾斜45度   
             fig.update_layout(height=450)
             st.session_state.manual_fig = fig
             st.session_state.manual_title = f"自定义｜{chart_type}：{x_sel} × {y_sel}"
