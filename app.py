@@ -468,7 +468,8 @@ with tab3:
 
 with tab4:
     st.subheader("🤖 AI 智能分析")
-    if not api_key: st.info("请在侧边栏填入 DeepSeek API Key。")
+    if not api_key: 
+        st.info("请在侧边栏填入 DeepSeek API Key。")
     else:
         if st.button("生成初始分析报告", type="primary", key="btn_ai"):
             with st.spinner("AI 正在解析数据..."):
@@ -477,6 +478,7 @@ with tab4:
         
         if st.session_state.ai_result: 
             st.markdown(st.session_state.ai_result)
+            
             if enable_chat:
                 st.divider()
                 st.markdown("### 💬 针对报告继续追问")
@@ -497,34 +499,45 @@ with tab4:
                                 st.markdown(ai_response)
                         st.session_state.chat_history.append({"role": "assistant", "content": ai_response})
                         st.rerun()
-        else: st.caption("点击上方按钮生成分析结论。")
+        else: 
+            st.caption("点击上方按钮生成分析结论。")
 
-    st.divider(); st.subheader("📥 导出 Markdown 报告")
-   if st.button("生成并下载报告"):
-    md = StringIO()
-    md.write("# 智析 — 数据分析报告\n\n")
+    st.divider()
+    st.subheader("📥 导出 Markdown 报告")
     
-    # ✨ 修复报错
-    if demo_option != "不使用示例":
-        md.write(f"> 数据文件：内置示例数据（{demo_option}）\n")
-    else:
-        md.write(f"> 数据文件：{len(uploaded_files)}个文件合并对比\n")
+    if st.button("生成并下载报告"):
+        md = StringIO()
+        md.write("# 智析 — 数据分析报告\n\n")
         
-    md.write(f"> 规模：{df.shape[0]} 行 × {df.shape[1]} 列\n\n")
-        md.write("## 1. 数据概览\n"); md.write(f"- 列类型：{col_types}\n")
+        # 修复报错
+        if demo_option != "不使用示例":
+            md.write(f"> 数据文件：内置示例数据（{demo_option}）\n")
+        else:
+            md.write(f"> 数据文件：{len(uploaded_files)}个文件合并对比\n")
+            
+        md.write(f"> 规模：{df.shape[0]} 行 × {df.shape[1]} 列\n\n")
+        md.write("## 1. 数据概览\n")
+        md.write(f"- 列类型：{col_types}\n")
         md.write("## 2. 自动图表\n")
+        
         for title, fig in st.session_state.auto_charts:
             md.write(f"### {title}\n")
             b64 = fig_to_base64(fig)
-            if b64: md.write(f"![{title}](data:image/png;base64,{b64})\n\n")
-            else: md.write("（图表请回网页查看）\n\n")
-        md.write("## 3. AI 分析结论\n\n"); md.write(st.session_state.ai_result or "未生成。\n")
+            if b64: 
+                md.write(f"![{title}](data:image/png;base64,{b64})\n\n")
+            else: 
+                md.write("（图表请回网页查看）\n\n")
+                
+        md.write("## 3. AI 分析结论\n\n")
+        md.write(st.session_state.ai_result or "未生成。\n")
+        
         if enable_chat and st.session_state.chat_history:
             md.write("## 4. 追问记录\n\n")
             for chat in st.session_state.chat_history:
                 role_name = "🙋 用户" if chat["role"] == "user" else "🤖 AI"
                 md.write(f"**{role_name}**: {chat['content']}\n\n")
+                
         st.download_button("⬇️ 下载 .md 文件", data=md.getvalue(), file_name="智析_分析报告.md", mime="text/markdown")
 
 st.markdown("---")
-st.caption("智析 v1.6｜多轮对话版")
+st.caption("智析 v1.8｜多轮对话 & 示例数据版")
