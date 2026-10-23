@@ -280,7 +280,13 @@ api_key = st.sidebar.text_input("DeepSeek API Key", type="password", value=defau
 model_name = st.sidebar.selectbox("选择模型", ["deepseek-chat", "deepseek-reasoner"])
 enable_chat = st.sidebar.toggle("开启 AI 多轮对话（探讨数据）", value=False, help="开启后，可以在分析报告下方继续向 AI 提问")
 uploaded_files = st.sidebar.file_uploader("上传数据文件（可多选进行对比）", type=["xlsx", "xls", "csv"], accept_multiple_files=True)
-
+# ✨ 新增：内置示例数据选择器
+st.sidebar.markdown("---")
+st.sidebar.subheader("✨ 没有数据？试试内置示例")
+demo_option = st.sidebar.selectbox(
+    "选择体验场景",
+    ["不使用示例", "📈 电商三个月销售对比", "🎓 学生期末成绩分析", "🌐 网站流量趋势分析"]
+)
 st.sidebar.divider()
 st.sidebar.header("🧹 数据清洗（可选）")
 drop_dup = st.sidebar.checkbox("删除完全重复行", value=False)
@@ -291,27 +297,90 @@ st.sidebar.caption("💡 提示：多文件对比请确保各表字段名（列�
 # ========== 主流程与文件读取 ==========
 st.title("📊 智析 — 智能数据可视化助手")
 
-if not uploaded_files:
+if not uploaded_files and demo_option == "不使用示例":
     st.info("👈 请在左侧边栏上传 1 个或多个 Excel/CSV 文件开始使用。")
+    st.markdown("💡 **或者，点击左侧边栏的『试试内置示例』直接体验！**")
     st.stop()
 
+# ========== 多文件读取与合并 ==========
 try:
-    dfs = []
-    for file in uploaded_files:
-        label = file.name.rsplit('.', 1)[0] 
-        sheet_name = 0
-        if file.name.lower().endswith((".xlsx", ".xls")) and len(uploaded_files) == 1:
-            xls = pd.ExcelFile(file)
-            if len(xls.sheet_names) > 1: sheet_name = st.sidebar.selectbox("选择工作表", xls.sheet_names)
-            file.seek(0)
-        temp_df = load_single_file(file, sheet_name)
-        temp_df.columns = temp_df.columns.str.strip()
-        if len(uploaded_files) > 1: temp_df["数据周期"] = label
-        dfs.append(temp_df)
-    df_raw = dfs[0] if len(dfs)== 1 else pd.concat(dfs, ignore_index=True, sort=False)
+    if demo_option != "不使用示例":
+        # 🌟 如果选了示例，直接生成数据，不读文件
+        if demo_option == "📈 电商三个月销售对比":
+            df_jan = pd.DataFrame({
+                "日期": pd.date_range("2024-01-01", periods=20, freq="D").astype(str),
+                "商品类别": np.random.choice(["电子产品", "办公用品", "家居家具"], 20),
+                "销售员": np.random.choice(["张三", "李四", "王五"], 20),
+                "销售额": np.random.randint(1000, 8000, 20),
+                "利润": np.random.randint(200, 3000, 20),
+                "数据周期": "1月"
+            })
+            df_feb = pd.DataFrame({
+                "日期": pd.date_range("2024-02-01", periods=20, freq="D").astype(str),
+                "商品类别": np.random.choice(["电子产品", "办公用品", "家居家具"], 20),
+                "销售员": np.random.choice(["张三", "李四", "王五"], 20),
+                "销售额": np.random.randint(1500, 9000, 20),
+                "利润": np.random.randint(300, 3500, 20),
+                "数据周期": "2月"
+            })
+            df_mar = pd.DataFrame({
+                "日期": pd.date_range("2024-03-01", periods=20, freq="D").astype(str),
+                "商品类别": np.random.choice(["电子产品", "办公用品", "家居家具"], 20),
+                "销售员": np.random.choice(["张三", "李四", "王五"], 20),
+                "销售额": np.random.randint(2000, 12000, 20),
+                "利润": np.random.randint(500, 5000, 20),
+                "数据周期": "3月"
+            })
+            # 故意造一个异常大单（15万），看 AI 能不能发现
+            df_mar.loc[0, "销售额"] = 150000 
+            df_mar.loc[0, "利润"] = 40000
+            df_raw = pd.concat([df_jan, df_feb, df_mar], ignore_index=True)
+            
+        elif demo_option == "🎓 学生期末成绩分析":
+            df_raw = pd.DataFrame({
+                "班级": np.random.choice(["高一1班", "高一2班", "高一3班"], 50),
+                "姓名": [f"学生_{i}" for i in range(50)],
+                "语文": np.random.randint(60, 100, 50),
+                "数学": np.random.randint(50, 100, 50),
+                "英语": np.random.randint(60, 100, 50),
+                "总分": 0
+            })
+            df_raw["总分"] = df_raw["语文"] + df_raw["数学"] + df_raw["英语"]
+            # 故意造几个缺失值和异常值
+            df_raw.loc[2, "数学"] = np.nan
+            df_raw.loc[5, "总分"] = 999
+            
+        elif demo_option == "🌐 网站流量趋势分析":
+            dates = pd.date_range("2024-01-01", periods=60, freq="D")
+            df_raw = pd.DataFrame({
+                "日期": dates.astype(str),
+                "访问量(PV)": np.random.randint(1000, 5000, 60) + np.arange(60) * 50,
+                "独立访客(UV)": np.random.randint(500, 2000, 60),
+                "转化率(%)": np.random.uniform(1.5, 5.5, 60).round(2)
+            })
+            
+        # 伪造数据签名，强制刷新
+        file_sig = f"demo_{demo_option}"
+        
+    else:
+        # 原来的多文件读取逻辑
+        dfs = []
+        for file in uploaded_files:
+            label = file.name.rsplit('.', 1)[0] 
+            sheet_name = 0
+            if file.name.lower().endswith((".xlsx", ".xls")) and len(uploaded_files) == 1:
+                xls = pd.ExcelFile(file)
+                if len(xls.sheet_names) > 1: sheet_name = st.sidebar.selectbox("选择工作表", xls.sheet_names)
+                file.seek(0)
+            temp_df = load_single_file(file, sheet_name)
+            temp_df.columns = temp_df.columns.str.strip()
+            if len(uploaded_files) > 1: temp_df["数据周期"] = label
+            dfs.append(temp_df)
+        df_raw = dfs[0] if len(dfs)== 1 else pd.concat(dfs, ignore_index=True, sort=False)
+        file_sig = "|".join([f.name for f in uploaded_files])
+
 except Exception as e:
     st.error(f"文件读取或合并失败：{e}"); st.stop()
-
 if df_raw.empty:
     st.warning("文件为空或无可读数据。"); st.stop()
 
@@ -431,10 +500,17 @@ with tab4:
         else: st.caption("点击上方按钮生成分析结论。")
 
     st.divider(); st.subheader("📥 导出 Markdown 报告")
-    if st.button("生成并下载报告"):
-        md = StringIO()
-        md.write("# 智析 — 数据分析报告\n\n")
-        md.write(f"> 数据文件：{len(uploaded_files)}个文件合并对比\n> 规模：{df.shape[0]} 行 × {df.shape[1]} 列\n\n")
+   if st.button("生成并下载报告"):
+    md = StringIO()
+    md.write("# 智析 — 数据分析报告\n\n")
+    
+    # ✨ 修复报错
+    if demo_option != "不使用示例":
+        md.write(f"> 数据文件：内置示例数据（{demo_option}）\n")
+    else:
+        md.write(f"> 数据文件：{len(uploaded_files)}个文件合并对比\n")
+        
+    md.write(f"> 规模：{df.shape[0]} 行 × {df.shape[1]} 列\n\n")
         md.write("## 1. 数据概览\n"); md.write(f"- 列类型：{col_types}\n")
         md.write("## 2. 自动图表\n")
         for title, fig in st.session_state.auto_charts:
