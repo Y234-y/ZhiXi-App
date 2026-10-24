@@ -39,70 +39,17 @@ def load_single_file(file, sheet_name=None):
     if name.endswith(".csv"):
         return read_csv_smart(file)
     
-    df_raw = pd.read_excel(file, sheet_name=sheet_name or 0, header=None)
+    # 🌟 极简读取：直接认第一行为表头！
+    df = pd.read_excel(file, sheet_name=sheet_name or 0, header=0)
     
-    # 1. 找真正的表头行
-    header_row_idx = 0
-    for i in range(min(10, len(df_raw))):
-        row_str = " ".join([str(x) for x in df_raw.iloc[i].values if pd.notna(x)])
-        if any(kw in row_str for kw in ["姓名", "班级", "总分", "学号", "日期"]):
-            header_row_idx = i
-            break
-            
-    headers = []
-    for col in range(df_raw.shape[1]):
-        h1 = str(df_raw.iloc[header_row_idx, col]).strip() if pd.notna(df_raw.iloc[header_row_idx, col]) else ""
-        h2 = ""
-        if header_row_idx + 1 < len(df_raw):
-            h2 = str(df_raw.iloc[header_row_idx + 1, col]).strip() if pd.notna(df_raw.iloc[header_row_idx + 1, col]) else ""
-        
-        if "Unnamed" in h1: h1 = ""
-        if "Unnamed" in h2: h2 = ""
-
-        final_h = h1
-        
-        # 2. 智能拼接（防止把第一行数据当表头）
-        if h1 in ["姓名", "班级", "学号", "选科", "考号"]:
-            final_h = h1
-        elif h2 and h2 != h1:
-            if not h2.isdigit() and len(h2) <= 4:
-                final_h = f"{h1}_{h2}" if h1 else h2
-            
-        # 3. 处理空列名
-        if not final_h:
-            final_h = f"空列_{col}"
-            
-        headers.append(final_h)
-        
-    # 4. 列名去重
-    final_headers = []
-    counts = {}
-    for h in headers:
-        if h in counts:
-            counts[h] += 1
-            final_headers.append(f"{h}_{counts[h]}")
-        else:
-            counts[h] = 1
-            final_headers.append(h)
-            
-    # 5. 判断数据从哪行开始
-    data_start_row = header_row_idx + 1
-    if header_row_idx + 1 < len(df_raw):
-        second_row_numeric_ratio = pd.to_numeric(df_raw.iloc[header_row_idx + 1], errors='coerce').notna().mean()
-        if second_row_numeric_ratio < 0.3:
-            data_start_row = header_row_idx + 2
-            
-    # 6. 组装最终数据
-    df = df_raw.iloc[data_start_row:].copy()
-    df.columns = final_headers
-    df = df.reset_index(drop=True)
+    # 清理掉列名里的前后空格
+    df.columns = df.columns.astype(str).str.strip()
     
-    # 🌟 新增：安全回退机制
-    # 如果智能解析后，数据行数连1行都没有，说明猜错了，直接回退到默认读法！
-    if len(df) == 0:
-        df = pd.read_excel(file, sheet_name=sheet_name or 0)
-        
+    # 如果列名里有 Unnamed，说明有空白列，直接删掉
+    df = df.loc[:, ~df.columns.str.contains('^Unnamed')]
+    
     return df
+    
 # ========== 类型识别与清洗逻辑 ==========
 TIME_KEYWORDS = ["date", "time", "日期", "时间", "年", "月", "日", "dt", "timestamp"]
 ID_KEYWORDS = ["id", "编号", "序号", "学号", "工号"]
@@ -306,14 +253,54 @@ st.sidebar.header("🧹 数据清洗（可选）")
 drop_dup = st.sidebar.checkbox("删除完全重复行", value=False)
 drop_na_rows = st.sidebar.checkbox("删除含缺失值的行", value=False)
 fill_na_num = st.sidebar.checkbox("数值列缺失值填均值", value=False)
-st.sidebar.caption("💡 提示：多文件对比请确保各表字段名（列名）一致，系统会以文件名作为周期标签。")
+st.sidebar.info("""
+📌 **上传规范：**
+1. 请确保第一行是**单行表头**（如：姓名、语文、数学）。
+2. 尽量不要包含**合并单元格**或**多余的空行**。
+3. 多文件对比时，请确保列名完全一致。
+""")
+import io # 确保文件开头有 import io
 
+# 加在侧边栏最下面
+st.sidebar.divider()
+st.sidebar.subheader("📥 下载标准数据模板")
+
+# 创建一个干净的示例 DataFrame
+template_df = pd.DataFrame({
+    "班级": ["1班", "1班"],
+    "姓名": ["张三", "李四"],
+    "语文": [95, 88],
+    "数学": [100, 92],
+    "英语": [90, 85]
+})
+
+# 把 DataFrame 转成 Excel 格式
+buffer = io.BytesIO()
+with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
+    template_df.to_excel(writer, index=False, sheet_name='Sheet1')
+
+st.sidebar.download_button(
+    label="⬇️ 下载标准格式Excel",
+    data=buffer.getvalue(),
+    file_name="智析_标准数据模板.xlsx",
+    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+)
+st.sidebar.caption("不知道怎么整理数据？下载模板照着填即可。")
 # ========== 主流程与文件读取 ==========
 st.title("📊 智析 — 智能数据可视化助手")
 
 if not uploaded_files and demo_option == "不使用示例":
     st.info("👈 请在左侧边栏上传 1 个或多个 Excel/CSV 文件开始使用。")
-    st.markdown("💡 **或者，点击左侧边栏的『试试内置示例』直接体验！**")
+    
+    # 🌟 新增显眼的提示卡片
+    st.warning("""
+    ⚠️ **为了让 AI 更准确地分析，请提前在 Excel 中处理好数据格式：**
+    *   **单行表头**：第一行必须是列名（不要有双层表头）。
+    *   **去掉合并单元格**：系统无法识别合并单元格，会导致数据错位。
+    *   **清理脏数据**：把“缺考”、“未扫”等文字改为空值，以免影响图表计算。
+    """)
+    
+    st.markdown("💡 **如果手头没有干净的数据，或者想直接看效果，请点击左侧边栏的『试试内置示例』！**")
     st.stop()
 
 # ========== 多文件读取与合并 ==========
