@@ -542,4 +542,4 @@ with tab4:
         st.download_button("⬇️ 下载 .md 文件", data=md.getvalue(), file_name="智析_分析报告.md", mime="text/markdown")
 
 st.markdown("---")
-st.caption("智析 v1.9｜多轮对话 & 示例数据版")
+st.caption("智析 v2.0｜多轮对话 & 示例数据版")
