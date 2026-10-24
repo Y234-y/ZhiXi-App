@@ -251,12 +251,26 @@ def call_llm_analysis(api_key, model, data_summary):
         return resp.json()["choices"][0]["message"]["content"]
     except Exception as e: return f"❌ AI 调用失败：{e}"
 
-def call_llm_chat(api_key, model, data_summary, chat_history, user_query):
+def call_llm_chat(api_key, model, data_summary, chat_history, user_query, df=None):
     url = "https://api.deepseek.com/chat/completions"
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
-    messages = [{"role": "system", "content": f"你是一位资深数据分析师。这是当前数据集的核心摘要：\n\n{data_summary}\n\n请结合上述数据，用通俗易懂的语言回答用户的问题。不要编造数据中没有的信息。"}]
+    
+    # 🌟 新增：本地精准检索功能
+    extra_context = ""
+    if df is not None and "姓名" in df.columns:
+        # 从用户的问题中找出包含的姓名
+        for name in df["姓名"].dropna().unique():
+            if str(name) in user_query:
+                student_data = df[df["姓名"] == name].iloc[0].to_dict()
+                # 把这名同学的成绩转成文本格式
+                details = ", ".join([f"{k}: {v}" for k, v in student_data.items() if pd.notna(v)])
+                extra_context = f"\n\n【系统补充检索】：用户在问关于「{name}」的情况，系统已在本地数据库查到该学生的具体数据如下：\n{details}\n请结合以上具体数据回答用户。"
+                break # 找到一个人就够用了，避免上下文太长
+
+    messages = [{"role": "system", "content": f"你是一位资深数据分析师。这是当前数据集的核心摘要：\n\n{data_summary}\n{extra_context}\n\n请结合上述数据，用通俗易懂的语言回答用户的问题。不要编造数据中没有的信息。"}]
     for msg in chat_history: messages.append(msg)
     messages.append({"role": "user", "content": user_query})
+    
     payload = {"model": model, "messages": messages, "temperature": 0.3}
     try:
         resp = requests.post(url, headers=headers, json=payload, timeout=60)
@@ -496,7 +510,7 @@ with tab4:
                             with st.spinner("思考中..."):
                                 summary = build_data_summary(df, col_types, st.session_state.auto_charts)
                                 recent_history = st.session_state.chat_history[-10:] 
-                                ai_response = call_llm_chat(api_key, model_name, summary, recent_history[:-1], user_query)
+                                ai_response = call_llm_chat(api_key, model_name, summary, recent_history[:-1], user_query,df)
                                 st.markdown(ai_response)
                         st.session_state.chat_history.append({"role": "assistant", "content": ai_response})
                         st.rerun()
@@ -541,4 +555,4 @@ with tab4:
         st.download_button("⬇️ 下载 .md 文件", data=md.getvalue(), file_name="智析_分析报告.md", mime="text/markdown")
 
 st.markdown("---")
-st.caption("智析 v1.8｜多轮对话 & 示例数据版")
+st.caption("智析 v1.9｜多轮对话 & 示例数据版")
