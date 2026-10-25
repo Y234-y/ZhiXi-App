@@ -454,7 +454,10 @@ with tab3:
                 except Exception: pass
                 fig = px.line(temp, x=x_sel, y=y_sel, color=color_col, markers=True)
             elif chart_type == "散点图": fig = px.scatter(df, x=x_sel, y=y_sel, color=color_col, opacity=0.7)
-            elif chart_type == "直方图": fig = px.histogram(df, x=x_sel, color=color_col, nbins=20)
+            elif chart_type == "直方图": 
+    # 🌟 增加 barmode="group" 让不同周期的柱子并排显示，不再叠加
+    fig = px.histogram(df, x=x_sel, color=color_col, nbins=20, 
+                       barmode="group", title=f"{x_sel} 分布对比")
             elif chart_type == "箱线图": fig = px.box(df, x=x_sel, y=y_sel, color=color_col)
             elif chart_type == "饼图":
                 vc = df[x_sel].value_counts().head(10).reset_index(); vc.columns = [x_sel, "count"]
