@@ -455,9 +455,13 @@ with tab3:
                 fig = px.line(temp, x=x_sel, y=y_sel, color=color_col, markers=True)
             elif chart_type == "散点图": fig = px.scatter(df, x=x_sel, y=y_sel, color=color_col, opacity=0.7)
             elif chart_type == "直方图": 
-    # 🌟 增加 barmode="group" 让不同周期的柱子并排显示，不再叠加
-    fig = px.histogram(df, x=x_sel, color=color_col, nbins=20, 
-                       barmode="group", title=f"{x_sel} 分布对比")
+                # 自动兼容：如果用户X轴选了姓名，就自动改用Y轴画分布
+                if x_sel in ["姓名", "学号", "ID", "id", "编号"]:
+                    fig = px.histogram(df, x=y_sel, color=color_col, nbins=20, 
+                                       barmode="group", title=f"{y_sel} 分布")
+                else:
+                     fig = px.histogram(df, x=x_sel, color=color_col, nbins=20, 
+                           barmode="group", title=f"{x_sel} 分布对比")
             elif chart_type == "箱线图": fig = px.box(df, x=x_sel, y=y_sel, color=color_col)
             elif chart_type == "饼图":
                 vc = df[x_sel].value_counts().head(10).reset_index(); vc.columns = [x_sel, "count"]
@@ -545,4 +549,4 @@ with tab4:
         st.download_button("⬇️ 下载 .md 文件", data=md.getvalue(), file_name="智析_分析报告.md", mime="text/markdown")
 
 st.markdown("---")
-st.caption("智析 v2.0｜多轮对话 & 示例数据版")
+st.caption("智析 v2.1｜多轮对话 & 示例数据版")
