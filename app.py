@@ -435,8 +435,34 @@ with tab3:
     c1, c2, c3 = st.columns(3)
     x_sel = c1.selectbox("X 轴字段", all_cols, key="x_sel")
     y_sel = c2.selectbox("Y 轴字段", all_cols, key="y_sel")
-    chart_type = c3.selectbox("图表类型", ["柱状图", "折线图", "散点图", "直方图", "箱线图", "饼图"], key="chart_type")
+    # 🌟 优雅的 UI 转换：用户看到的是大白话，程序拿到的还是专业词
+    chart_options = {
+        "柱状图": "柱状图 (用于分类对比)",
+        "折线图": "折线图 (用于看时间趋势)",
+        "散点图": "散点图 (用于看两变量关系)",
+        "直方图": "直方图 (用于看数值分布)",
+        "箱线图": "箱线图 (用于看分散度与异常)",
+        "饼图": "饼图 (用于看占比)"
+    }
 
+    chart_type = c3.selectbox(
+        "图表类型", 
+        options=list(chart_options.keys()),  # 底层实际上是 ["柱状图", "折线图"...]
+        format_func=lambda x: chart_options[x], # 前端展示翻译成大白话
+        key="chart_type"
+    )
+    
+    # 🌟 新增：图表使用场景智能提示
+    chart_tips = {
+        "柱状图": "💡 适合：对比不同类别的数据（如：各班级的平均分对比）。X轴选分类，Y轴选数值。",
+        "折线图": "💡 适合：展示随时间变化的趋势（如：1-6月的销售额走势）。X轴通常选时间，Y轴选数值。",
+        "散点图": "💡 适合：查看两个数值之间的关联关系（如：语文成绩和数学成绩的关系）。X轴和Y轴都要选数值。",
+        "直方图": "💡 适合：查看数值的分布区间（如：看看哪个分数段的人最多）。X轴请选要分析的数值列，Y轴可忽略。",
+        "箱线图": "💡 适合：查看数据的分散程度和异常值（如：看看各班成绩的差距大不大）。X轴选分类，Y轴选数值。",
+        "饼图": "💡 适合：查看各部分占总体的比例（如：男女比例、各科目的分数占比）。X轴选分类列即可。"
+    }
+    # 在界面下方显示对应的提示
+    st.info(chart_tips.get(chart_type, ""))
     if st.button("生成自定义图表", type="primary"):
         try:
             has_period = "数据周期" in df.columns
@@ -549,4 +575,4 @@ with tab4:
         st.download_button("⬇️ 下载 .md 文件", data=md.getvalue(), file_name="智析_分析报告.md", mime="text/markdown")
 
 st.markdown("---")
-st.caption("智析 v2.1｜多轮对话 & 示例数据版")
+st.caption("智析 v2.2｜Your AI Data Storyteller")
