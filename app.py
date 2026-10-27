@@ -461,11 +461,32 @@ if st.session_state.df_sig != sig:
     st.session_state.ai_result = ""
     st.session_state.chat_history = [] 
 
-# 顶部指标
-c1, c2, c3, c4 = st.columns(4)
-c1.metric("总行数", df.shape[0]); c2.metric("总列数", df.shape[1])
-c3.metric("数值列", sum(1 for t in col_types.values() if t == "numeric"))
-c4.metric("分类列", sum(1 for t in col_types.values() if t == "categorical"))
+# 🌟 优化版：自定义数据指标卡片（手机端自动 2x2 排列）
+row_count = df.shape[0]
+col_count = df.shape[1]
+num_count = sum(1 for t in col_types.values() if t == "numeric")
+cat_count = sum(1 for t in col_types.values() if t == "categorical")
+
+st.markdown(f"""
+<div style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 25px;">
+    <div style="flex: 1; min-width: 40%; background: white; padding: 15px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); text-align: center; border-top: 4px solid #004b87;">
+        <p style="margin: 0; font-size: 14px; color: #555;">总行数</p >
+        <p style="margin: 5px 0 0 0; font-size: 24px; font-weight: bold; color: #004b87;">{row_count}</p >
+    </div>
+    <div style="flex: 1; min-width: 40%; background: white; padding: 15px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); text-align: center; border-top: 4px solid #004b87;">
+        <p style="margin: 0; font-size: 14px; color: #555;">总列数</p >
+        <p style="margin: 5px 0 0 0; font-size: 24px; font-weight: bold; color: #004b87;">{col_count}</p >
+    </div>
+    <div style="flex: 1; min-width: 40%; background: white; padding: 15px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); text-align: center; border-top: 4px solid #5f9ea0;">
+        <p style="margin: 0; font-size: 14px; color: #555;">数值列</p >
+        <p style="margin: 5px 0 0 0; font-size: 24px; font-weight: bold; color: #5f9ea0;">{num_count}</p >
+    </div>
+    <div style="flex: 1; min-width: 40%; background: white; padding: 15px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); text-align: center; border-top: 4px solid #5f9ea0;">
+        <p style="margin: 0; font-size: 14px; color: #555;">分类列</p >
+        <p style="margin: 5px 0 0 0; font-size: 24px; font-weight: bold; color: #5f9ea0;">{cat_count}</p >
+    </div>
+</div>
+""", unsafe_allow_html=True)
 tab1, tab2, tab3, tab4 = st.tabs(["📋 数据预览", "📈 自动图表", "🛠️ 自定义图表", "🤖 AI 分析 & 导出"])
 
 with tab1:
