@@ -5,13 +5,9 @@ import plotly.express as px
 import requests
 import base64
 from io import StringIO
-
-st.set_page_config(page_title="智析 — 智能数据可视化与解读助手", layout="wide", page_icon="📊")
+#页面配置
 import streamlit as st
-
-# 页面配置
 st.set_page_config(page_title="智析 — 智能数据可视化与解读助手", layout="wide", page_icon="📊")
-
 # 🌟 江南 x 杭电 特色 UI 美化注入
 st.markdown("""
 <style>
@@ -623,4 +619,4 @@ with tab4:
         st.download_button("⬇️ 下载 .md 文件", data=md.getvalue(), file_name="智析_分析报告.md", mime="text/markdown")
 
 st.markdown("---")
-st.caption("智析 v2.2｜Your AI Data Storyteller")
+st.caption("智析 v2.3｜Your AI Data Storyteller")
