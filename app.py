@@ -7,7 +7,55 @@ import base64
 from io import StringIO
 
 st.set_page_config(page_title="智析 — 智能数据可视化与解读助手", layout="wide", page_icon="📊")
+import streamlit as st
 
+# 页面配置
+st.set_page_config(page_title="智析 — 智能数据可视化与解读助手", layout="wide", page_icon="📊")
+
+# 🌟 江南 x 杭电 特色 UI 美化注入
+st.markdown("""
+<style>
+    /* 1. 主背景：极浅的江南水墨白（带一点点青色） */
+    .stApp {
+        background-color: #f7f9f8;
+    }
+    
+    /* 2. 侧边栏背景：西湖水绿/青灰 */
+    [data-testid="stSidebar"] {
+        background-color: #e8f0ef;
+        border-right: 2px solid #d0dedb;
+    }
+    
+    /* 3. 主标题：杭电科技蓝 + 宋体（增加江南人文气息） */
+    h1, h2, h3 {
+        color: #004b87 !important; /* 杭电经典蓝 */
+        font-family: "STSong", "SimSun", "Microsoft YaHei", serif;
+        font-weight: bold;
+    }
+    
+    /* 4. 按钮：现代科技感 + 圆角 */
+    .stButton>button {
+        background: linear-gradient(135deg, #004b87, #0066cc);
+        color: white;
+        border-radius: 8px;
+        border: none;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        transition: all 0.3s ease;
+    }
+    .stButton>button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 12px rgba(0, 75, 135, 0.3);
+    }
+    
+    /* 5. 图表卡片：给 Plotly 图表加个宣纸阴影 */
+    .stPlotlyChart {
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        border-radius: 10px;
+        padding: 10px;
+        background-color: white;
+    }
+</style>
+""", unsafe_allow_html=True)
 # ========== Session State 初始化 ==========
 defaults = {
     "ai_result": "", 
