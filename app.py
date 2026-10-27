@@ -11,44 +11,62 @@ st.set_page_config(page_title="智析 — 智能数据可视化与解读助手",
 # 🌟 江南 x 杭电 特色 UI 美化注入
 st.markdown("""
 <style>
-    /* 1. 主背景：极浅的江南水墨白（带一点点青色） */
+    /* 1. 主背景：极浅的江南水墨白 */
     .stApp {
         background-color: #f7f9f8;
     }
     
-    /* 2. 侧边栏背景：西湖水绿/青灰 */
+    /* 2. 减小顶部默认留白 (让内容更靠上) */
+    .block-container {
+        padding-top: 2rem !important;
+        padding-bottom: 1rem !important;
+    }
+
+    /* 3. 侧边栏背景 */
     [data-testid="stSidebar"] {
         background-color: #e8f0ef;
         border-right: 2px solid #d0dedb;
     }
     
-    /* 3. 主标题：杭电科技蓝 + 宋体（增加江南人文气息） */
+    /* 4. 主标题：杭电科技蓝 + 宋体 */
     h1, h2, h3 {
-        color: #004b87 !important; /* 杭电经典蓝 */
+        color: #004b87 !important; 
         font-family: "STSong", "SimSun", "Microsoft YaHei", serif;
         font-weight: bold;
     }
     
-    /* 4. 按钮：现代科技感 + 圆角 */
+    /* 5. 按钮：现代科技感 */
     .stButton>button {
         background: linear-gradient(135deg, #004b87, #0066cc);
         color: white;
         border-radius: 8px;
         border: none;
         box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        transition: all 0.3s ease;
-    }
-    .stButton>button:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 12px rgba(0, 75, 135, 0.3);
     }
     
-    /* 5. 图表卡片：给 Plotly 图表加个宣纸阴影 */
+    /* 6. 图表卡片化 */
     .stPlotlyChart {
         box-shadow: 0 4px 12px rgba(0,0,0,0.05);
         border-radius: 10px;
         padding: 10px;
         background-color: white;
+    }
+
+    /* 🌟 7. 关键优化：手机端指标卡两列排布 (2x2) */
+    @media (max-width: 768px) {
+        /* 强制水平排列的块换行，变成两列 */
+        [data-testid="stHorizontalBlock"] {
+            flex-wrap: wrap;
+            gap: 0.5rem !important;
+        }
+        [data-testid="stHorizontalBlock"] > div {
+            width: calc(50% - 0.25rem) !important;
+            flex: none !important;
+        }
+        /* 缩小指标卡里的数字字号，防止太大溢出 */
+        [data-testid="stMetricValue"] {
+            font-size: 1.8rem !important;
+        }
     }
 </style>
 """, unsafe_allow_html=True)
