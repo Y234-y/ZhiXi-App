@@ -39,12 +39,141 @@ st.sidebar.header("🧹 数据清洗（可选）")
 drop_dup = st.sidebar.checkbox("删除完全重复行", value=False)
 drop_na_rows = st.sidebar.checkbox("删除含缺失值的行", value=False)
 fill_na_num = st.sidebar.checkbox("数值列缺失值填均值", value=False)
+# ========= 侧边栏底部：下载高级电商模板 =========
+st.sidebar.divider()
+st.sidebar.subheader("📥 下载高级电商数据模板")
 
+import io
+from openpyxl.styles import Font, PatternFill, Alignment
+
+# 生成一份带有3个月周期的真实模拟电商数据
+@st.cache_data
+def get_template_data():
+    np.random.seed(42)
+    dates = pd.date_range("2024-01-01", periods=90, freq="D")
+    data = {
+        "日期": dates.astype(str),
+        "商品类目": np.random.choice(["女装", "数码配件", "美妆护肤"], 90),
+        "推广渠道": np.random.choice(["直通车", "引力魔方", "自然流量"], 90),
+        "访客数(UV)": np.random.randint(200, 1500, 90),
+        "支付转化率(%)": np.random.uniform(1.0, 5.5, 90).round(2),
+        "客单价(元)": np.random.randint(50, 300, 90),
+        "销售额(元)": 0,
+        "退款金额(元)": 0,
+        "推广花费(元)": 0,
+        "数据周期": ""
+    }
+    df = pd.DataFrame(data)
+    df["销售额(元)"] = (df["访客数(UV)"] * (df["支付转化率(%)"]/100) * df["客单价(元)"]).round(2)
+    df["退款金额(元)"] = (df["销售额(元)"] * np.random.uniform(0.05, 0.25, 90)).round(2)
+    df["推广花费(元)"] = (df["销售额(元)"] * np.random.uniform(0.1, 0.3, 90)).round(2)
+    
+    df.loc[:29, "数据周期"] = "1月"
+    df.loc[30:59, "数据周期"] = "2月"
+    df.loc[60:, "数据周期"] = "3月"
+    return df
+
+template_df = get_template_data()
+buffer = io.BytesIO()
+
+with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
+    template_df.to_excel(writer, index=False, sheet_name='电商运营数据')
+    
+    # 🌟 Excel 高级美化
+    worksheet = writer.sheets['电商运营数据']
+    header_fill = PatternFill(start_color='004B87', end_color='004B87', fill_type='solid')
+    header_font = Font(color='FFFFFF', bold=True)
+    
+    for col_num, value in enumerate(template_df.columns, 1):
+        cell = worksheet.cell(row=1, column=col_num)
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = Alignment(horizontal='center', vertical='center')
+        
+    for col in worksheet.columns:
+        max_length = 0
+        column = col[0].column_letter 
+        for cell in col:
+            try:
+                if len(str(cell.value)) > max_length:
+                    max_length = len(str(cell.value))
+            except: pass
+        worksheet.column_dimensions[column].width = (max_length + 2)
+
+# 生成下载按钮
+st.sidebar.download_button(
+    label="⬇️ 下载标准 Excel 模板",
+    data=buffer.getvalue(),
+    file_name="智析_电商标准数据模板.xlsx",
+    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    use_container_width=True
+)
+st.sidebar.caption("内置3个月模拟数据，带杭电蓝高亮表头，下载即用！")
+# ==========================================
 # ========== 主流程 ==========
 st.title("📊 智析 — 智能数据可视化助手")
-
 if not uploaded_files and demo_option == "不使用示例":
-    st.info("👈 请在左侧边栏上传 Excel/CSV 文件，或选择内置示例体验。")
+    
+    # 🌟 1. 蓝色极简引导提示
+    st.markdown("""
+    <div style="
+        background-color: #e6f0fa; 
+        border-left: 5px solid #004b87; 
+        padding: 12px 20px; 
+        border-radius: 6px; 
+        margin-bottom: 20px;
+        color: #004b87;
+        font-size: 15px;
+        font-weight: 500;
+    ">
+        👈 请在左侧边栏上传 1 个或多个 Excel/CSV 文件开始使用。
+    </div>
+    """, unsafe_allow_html=True)
+
+    # 🌟 2. 极速体验通道卡片 (杭电蓝)
+    st.markdown("""
+    <div style="
+        background-color: #f7f9f8; 
+        border-left: 5px solid #004b87; 
+        padding: 15px 20px; 
+        border-radius: 8px; 
+        box-shadow: 0 2px 8px rgba(0,0,0,0.04); 
+        margin-bottom: 20px;
+        display: flex;
+        align-items: flex-start;
+    ">
+        <div style="font-size: 24px; margin-right: 15px;">🚀</div>
+        <div>
+            <h4 style="margin: 0 0 5px 0; color: #004b87; font-size: 16px;">极速体验通道</h4>
+            <p style="margin: 0; color: #555; font-size: 14px; line-height: 1.5;">
+                手头没有合适的数据？或者想直接看效果？<br>
+                请在左侧边栏的 <b>『✨ 没有数据？试试内置示例』</b> 中选择一个场景，一键生成分析报告。
+            </p >
+        </div>
+    </div>
+
+    <div style="
+        background-color: #e8f0ef; 
+        border-left: 5px solid #5f9ea0; 
+        padding: 15px 20px; 
+        border-radius: 8px; 
+        box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        display: flex;
+        align-items: flex-start;
+    ">
+        <div style="font-size: 24px; margin-right: 15px;">🛡️</div>
+        <div>
+            <h4 style="margin: 0 0 5px 0; color: #3e7375; font-size: 16px;">数据格式规范指南</h4>
+            <p style="margin: 0 0 8px 0; color: #555; font-size: 14px;">为了确保 AI 分析的 100% 准确，请在上传前检查 Excel：</p >
+            <ul style="margin: 0; padding-left: 20px; color: #555; font-size: 13px; line-height: 1.6;">
+                <li><b>单行表头</b>：第一行必须是列名，避免双层表头导致错位。</li>
+                <li><b>去掉合并单元格</b>：系统无法识别，建议提前拆分。</li>
+                <li><b>清理脏数据</b>：将“缺考”、“未扫”等文字直接留空，以免影响图表计算。</li>
+            </ul>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+    
     st.stop()
 
 # 多文件读取与合并
