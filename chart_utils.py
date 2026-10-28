@@ -4,11 +4,11 @@ import plotly.express as px
 def auto_recommend_charts(df, col_types):
     charts = []
     # 🌟 过滤掉不能参与数学计算的 ID 类字段
-id_blacklist = ["学号", "编号", "id", "ID", "序号", "单号"]
-numeric_cols = [
-    c for c, t in col_types.items() 
-    if t == "numeric" and not any(kw in str(c) for kw in id_blacklist)
-]
+    id_blacklist = ["学号", "编号", "id", "ID", "序号", "单号"]
+    numeric_cols = [
+        c for c, t in col_types.items() 
+        if t == "numeric" and not any(kw in str(c) for kw in id_blacklist)
+    ]
     cat_cols = [c for c, t in col_types.items() if t == "categorical" and c != "数据周期"]
     date_cols = [c for c, t in col_types.items() if t == "datetime"]
     has_period = "数据周期" in df.columns
