@@ -152,7 +152,7 @@ try:
             df_demo.loc[35:45, "推广花费(元)"] *= 2.5
             df_raw = df_demo
             
-        elif demo_option == "🎓 学生期末成绩分析(复杂版)":
+        elif demo_option == "🎓 学生期末成绩分析":
             np.random.seed(10)
             n = 80
             df_raw = pd.DataFrame({
@@ -167,7 +167,7 @@ try:
             df_raw.loc[10:15, "数学"] = np.nan
             df_raw.loc[20, "物理"] = 250
             
-        elif demo_option == "🏫 校园社团活动数据(复杂版)":
+        elif demo_option == "🏫 校园社团活动数据":
             np.random.seed(99)
             n = 100
             df_raw = pd.DataFrame({
