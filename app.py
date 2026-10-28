@@ -379,4 +379,4 @@ with tab4:
         st.download_button("⬇️ 下载 .md 文件", data=md.getvalue(), file_name="智析_分析报告.md", mime="text/markdown")
 
 st.markdown("---")
-st.caption("智析 v3.0 ZhiXi Insight)
+st.caption("智析 v3.0 Empowering Everyone with AI Data Insights")
