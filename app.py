@@ -50,10 +50,54 @@ if not uploaded_files and demo_option == "不使用示例":
 # 多文件读取与合并
 try:
     if demo_option != "不使用示例":
-        # (这里放你生成示例数据的代码，因为太长就不重复贴了，直接用你原来 app.py 里的即可)
-        # ... 为了演示精简，这里先省略生成逻辑，你把你原本里面的 if demo_option == "..." 搬过来即可
-        pass 
+        # 🌟 生成电商演示数据
+        if demo_option == "📈 电商店铺一季度销售诊断":
+            np.random.seed(42) 
+            days = pd.date_range("2024-01-01", periods=90, freq="D")
+            data = {
+                "日期": days.astype(str),
+                "商品类目": np.random.choice(["女装", "数码配件", "美妆护肤"], 90),
+                "推广渠道": np.random.choice(["直通车", "引力魔方", "自然流量"], 90),
+                "访客数(UV)": np.random.randint(200, 1500, 90),
+                "支付转化率(%)": np.random.uniform(1.0, 5.5, 90).round(2),
+                "客单价(元)": np.random.randint(50, 300, 90),
+                "销售额(元)": 0,
+                "退款金额(元)": 0,
+                "推广花费(元)": 0,
+                "数据周期": ""
+            }
+            df_demo = pd.DataFrame(data)
+            df_demo["销售额(元)"] = (df_demo["访客数(UV)"] * (df_demo["支付转化率(%)"]/100) * df_demo["客单价(元)"]).round(2)
+            df_demo["退款金额(元)"] = (df_demo["销售额(元)"] * np.random.uniform(0.05, 0.25, 90)).round(2)
+            df_demo["推广花费(元)"] = (df_demo["销售额(元)"] * np.random.uniform(0.1, 0.3, 90)).round(2)
+            
+            df_demo.loc[:29, "数据周期"] = "1月"
+            df_demo.loc[30:59, "数据周期"] = "2月"
+            df_demo.loc[60:, "数据周期"] = "3月"
+            
+            # 制造异常点
+            df_demo.loc[70:80, "退款金额(元)"] *= 3
+            df_demo.loc[35:45, "推广花费(元)"] *= 2.5
+            
+            df_raw = df_demo
+            
+        # 🌟 生成成绩演示数据（如果你加了的话，没有可以删掉这一块）
+        elif demo_option == "🎓 学生期末成绩分析":
+            # ... 如果你有成绩单生成代码，放这里 ...
+            pass
+
     else:
+        # 读取真实上传的文件
+        dfs = []
+        for file in uploaded_files:
+            label = file.name.rsplit('.', 1)[0] 
+            temp_df = load_single_file(file)
+            temp_df.columns = temp_df.columns.str.strip()
+            if len(uploaded_files) > 1: temp_df["数据周期"] = label
+            dfs.append(temp_df)
+        df_raw = dfs[0] if len(dfs)== 1 else pd.concat(dfs, ignore_index=True, sort=False)
+except Exception as e:
+    st.error(f"文件读取失败：{e}"); st.stop()
         dfs = []
         for file in uploaded_files:
             label = file.name.rsplit('.', 1)[0] 
