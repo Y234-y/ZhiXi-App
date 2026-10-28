@@ -31,7 +31,10 @@ enable_chat = st.sidebar.toggle("开启 AI 多轮对话（探讨数据）", valu
 
 # 示例数据选择
 st.sidebar.markdown("---")
-demo_option = st.sidebar.selectbox("✨ 没有数据？试试内置示例", ["不使用示例", "📈 电商店铺一季度销售诊断", "🎓 学生期末成绩分析"])
+demo_option = st.sidebar.selectbox(
+    "✨ 没有数据？试试内置示例", 
+    ["不使用示例", "📈 电商店铺一季度销售诊断", "🎓 学生期末成绩分析", "🏫 校园社团活动数据"]
+)
 uploaded_files = st.sidebar.file_uploader("上传数据文件（可多选进行对比）", type=["xlsx", "xls", "csv"], accept_multiple_files=True)
 
 st.sidebar.divider()
@@ -181,50 +184,82 @@ try:
     if demo_option != "不使用示例":
         # 🌟 生成电商演示数据
         if demo_option == "📈 电商店铺一季度销售诊断":
-            np.random.seed(42) 
-            days = pd.date_range("2024-01-01", periods=90, freq="D")
-            data = {
-                "日期": days.astype(str),
-                "商品类目": np.random.choice(["女装", "数码配件", "美妆护肤"], 90),
-                "推广渠道": np.random.choice(["直通车", "引力魔方", "自然流量"], 90),
-                "访客数(UV)": np.random.randint(200, 1500, 90),
-                "支付转化率(%)": np.random.uniform(1.0, 5.5, 90).round(2),
-                "客单价(元)": np.random.randint(50, 300, 90),
-                "销售额(元)": 0,
-                "退款金额(元)": 0,
-                "推广花费(元)": 0,
-                "数据周期": ""
-            }
-            df_demo = pd.DataFrame(data)
-            df_demo["销售额(元)"] = (df_demo["访客数(UV)"] * (df_demo["支付转化率(%)"]/100) * df_demo["客单价(元)"]).round(2)
-            df_demo["退款金额(元)"] = (df_demo["销售额(元)"] * np.random.uniform(0.05, 0.25, 90)).round(2)
-            df_demo["推广花费(元)"] = (df_demo["销售额(元)"] * np.random.uniform(0.1, 0.3, 90)).round(2)
+    np.random.seed(42) 
+    days = pd.date_range("2024-01-01", periods=90, freq="D")
+    data = {
+        "日期": days.astype(str),
+        "商品类目": np.random.choice(["女装", "数码配件", "美妆护肤"], 90),
+        "推广渠道": np.random.choice(["直通车", "引力魔方", "自然流量"], 90),
+        "访客数(UV)": np.random.randint(200, 1500, 90),
+        "支付转化率(%)": np.random.uniform(1.0, 5.5, 90).round(2),
+        "客单价(元)": np.random.randint(50, 300, 90),
+        "销售额(元)": 0,
+        "退款金额(元)": 0,
+        "推广花费(元)": 0,
+        "数据周期": ""
+    }
+    df_demo = pd.DataFrame(data)
+    df_demo["销售额(元)"] = (df_demo["访客数(UV)"] * (df_demo["支付转化率(%)"]/100) * df_demo["客单价(元)"]).round(2)
+    df_demo["退款金额(元)"] = (df_demo["销售额(元)"] * np.random.uniform(0.05, 0.25, 90)).round(2)
+    df_demo["推广花费(元)"] = (df_demo["销售额(元)"] * np.random.uniform(0.1, 0.3, 90)).round(2)
+    
+    df_demo.loc[:29, "数据周期"] = "1月"
+    df_demo.loc[30:59, "数据周期"] = "2月"
+    df_demo.loc[60:, "数据周期"] = "3月"
+    
+    df_demo.loc[70:80, "退款金额(元)"] *= 3
+    df_demo.loc[35:45, "推广花费(元)"] *= 2.5
+    df_raw = df_demo
+    
+elif demo_option == "🎓 学生期末成绩分析(复杂版)":
+    # 制造一个复杂的多科目、带缺失值和异常值的数据
+    np.random.seed(10)
+    n = 80
+    df_raw = pd.DataFrame({
+        "学号": [f"2023{i:03d}" for i in range(1, n+1)],
+        "班级": np.random.choice(["高一1班", "高一2班", "高一3班", "高一4班"], n),
+        "姓名": [f"学生_{i}" for i in range(n)],
+        "语文": np.random.randint(60, 100, n),
+        "数学": np.random.randint(40, 100, n),
+        "英语": np.random.randint(55, 100, n),
+        "物理": np.random.randint(30, 100, n),
+        "历史": np.random.randint(50, 100, n),
+        "总分": 0
+    })
+    df_raw["总分"] = df_raw[["语文", "数学", "英语", "物理", "历史"]].sum(axis=1)
+    # 制造 5 个数学缺考（NaN）
+    df_raw.loc[10:15, "数学"] = np.nan
+    # 制造 1 个物理分数异常爆表（录入错误）
+    df_raw.loc[20, "物理"] = 250
+    
+elif demo_option == "🏫 校园社团活动数据(复杂版)":
+    # 制造一个社团招新与活动预算的数据
+    np.random.seed(99)
+    n = 100
+    df_raw = pd.DataFrame({
+        "报名日期": pd.date_range("2024-09-01", periods=n, freq="D").astype(str),
+        "学号": [f"2023{np.random.randint(100, 999)}" for _ in range(n)],
+        "申请部门": np.random.choice(["外联部", "宣传部", "技术部", "活动部", "秘书处"], n),
+        "面试得分": np.random.randint(60, 100, n),
+        "是否录用": np.random.choice(["是", "否"], n, p=[0.3, 0.7]),
+        "活动预算(元)": np.random.randint(100, 5000, n),
+        "实际花费(元)": 0
+    })
+    # 模拟实际花费：有的超支，有的节约
+    df_raw["实际花费(元)"] = (df_raw["活动预算(元)"] * np.random.uniform(0.5, 1.4, n)).round(2)
+    # 制造缺失值
+    df_raw.loc[5:10, "面试得分"] = np.nan
+else:
+    # 读取真实上传的文件
+    dfs = []
+    for file in uploaded_files:
+        label = file.name.rsplit('.', 1)[0]
+        temp_df = load_single_file(file)
+        temp_df.columns = temp_df.columns.str.strip()
+        if len(uploaded_files) > 1:
+            temp_df["数据周期"] = label
+        dfs.append(temp_df)  
             
-            df_demo.loc[:29, "数据周期"] = "1月"
-            df_demo.loc[30:59, "数据周期"] = "2月"
-            df_demo.loc[60:, "数据周期"] = "3月"
-            
-            # 制造异常点
-            df_demo.loc[70:80, "退款金额(元)"] *= 3
-            df_demo.loc[35:45, "推广花费(元)"] *= 2.5
-            
-            df_raw = df_demo
-            
-        # 🌟 生成成绩演示数据（如果你加了的话，没有可以删掉这一块）
-        elif demo_option == "🎓 学生期末成绩分析":
-            # ... 如果你有成绩单生成代码，放这里 ...
-            pass
-
-        else:
-            # 读取真实上传的文件
-            dfs = []
-        for file in uploaded_files:
-            label = file.name.rsplit('.', 1)[0] 
-            temp_df = load_single_file(file)
-            temp_df.columns = temp_df.columns.str.strip()
-            if len(uploaded_files) > 1: 
-                temp_df["数据周期"] = label
-            dfs.append(temp_df)
             
         if len(dfs) == 1:
             df_raw = dfs[0]
