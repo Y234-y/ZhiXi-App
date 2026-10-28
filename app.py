@@ -87,8 +87,8 @@ try:
             pass
 
         else:
-        # 读取真实上传的文件
-        dfs = []
+            # 读取真实上传的文件
+            dfs = []
         for file in uploaded_files:
             label = file.name.rsplit('.', 1)[0] 
             temp_df = load_single_file(file)
