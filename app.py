@@ -86,26 +86,24 @@ try:
             # ... 如果你有成绩单生成代码，放这里 ...
             pass
 
-    else:
+        else:
         # 读取真实上传的文件
         dfs = []
         for file in uploaded_files:
             label = file.name.rsplit('.', 1)[0] 
             temp_df = load_single_file(file)
             temp_df.columns = temp_df.columns.str.strip()
-            if len(uploaded_files) > 1: temp_df["数据周期"] = label
+            if len(uploaded_files) > 1: 
+                temp_df["数据周期"] = label
             dfs.append(temp_df)
-        df_raw = dfs[0] if len(dfs)== 1 else pd.concat(dfs, ignore_index=True, sort=False)
-except Exception as e:
-    st.error(f"文件读取失败：{e}"); st.stop()
-        dfs = []
-        for file in uploaded_files:
-            label = file.name.rsplit('.', 1)[0] 
-            temp_df = load_single_file(file)
-            temp_df.columns = temp_df.columns.str.strip()
-            if len(uploaded_files) > 1: temp_df["数据周期"] = label
-            dfs.append(temp_df)
-        df_raw = dfs[0] if len(dfs)== 1 else pd.concat(dfs, ignore_index=True, sort=False)
+            
+        if len(dfs) == 1:
+            df_raw = dfs[0]
+        elif len(dfs) > 1:
+            df_raw = pd.concat(dfs, ignore_index=True, sort=False)
+        else:
+            df_raw = pd.DataFrame()
+            
 except Exception as e:
     st.error(f"文件读取失败：{e}"); st.stop()
 
