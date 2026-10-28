@@ -108,7 +108,7 @@ st.sidebar.download_button(
     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     use_container_width=True
 )
-st.sidebar.caption("内置3个月模拟数据，带杭电蓝高亮表头，下载即用！")
+st.sidebar.caption("内置3个月模拟数据，下载即用！")
 # ==========================================
 # ========== 主流程 ==========
 st.title("📊 智析 — 智能数据可视化助手")
