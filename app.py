@@ -36,7 +36,7 @@ enable_chat = st.sidebar.toggle("开启 AI 多轮对话（探讨数据）", valu
 st.sidebar.markdown("---")
 demo_option = st.sidebar.selectbox(
     "✨ 没有数据？试试内置示例", 
-    ["不使用示例", "📈 电商店铺一季度销售诊断", "🎓 学生期末成绩分析(复杂版)", "🏫 校园社团活动数据(复杂版)"]
+    ["不使用示例", "📈 电商店铺一季度销售诊断", "🎓 学生期末成绩分析", "🏫 校园社团活动数据"]
 )
 uploaded_files = st.sidebar.file_uploader("上传数据文件（可多选进行对比）", type=["xlsx", "xls", "csv"], accept_multiple_files=True)
 
