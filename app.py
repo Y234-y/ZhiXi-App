@@ -288,10 +288,22 @@ with tab3:
             elif chart_type == "散点图": 
                 fig = px.scatter(df, x=x_sel, y=y_sel, color=color_col, opacity=0.7)
             elif chart_type == "直方图": 
-                if x_sel in ["姓名", "学号", "ID", "id", "编号"]:
-                    fig = px.histogram(df, x=y_sel, color=color_col, nbins=20, barmode="group", title=f"{y_sel} 分布")
-                else:
-                    fig = px.histogram(df, x=x_sel, color=color_col, nbins=20, barmode="group", title=f"{x_sel} 分布对比")
+                # 设定 Y 轴的数据列
+                hist_x = y_sel if x_sel in ["姓名", "学号", "ID", "id", "编号"] else x_sel
+    
+                # 🌟 高级定制：使用渐变蓝/青配色，加上白色边框
+                fig = px.histogram(
+                    df, 
+                    x=hist_x, 
+                    color=color_col, 
+                    nbins=20, 
+                    barmode="group", 
+                    title=f"{hist_x} 分布对比",
+                    color_discrete_sequence=["#004b87", "#5f9ea0", "#8fbc8f"] # 杭电蓝+水墨青
+                )
+    
+                # 给柱状图加上白色描边，瞬间增加高级感（呼吸感）
+                fig.update_traces(marker_line_color='white', marker_line_width=1.5)
             elif chart_type == "箱线图": 
                 fig = px.box(df, x=x_sel, y=y_sel, color=color_col)
             elif chart_type == "饼图":
