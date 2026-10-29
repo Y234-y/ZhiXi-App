@@ -51,46 +51,54 @@ if "use_demo" not in st.session_state: st.session_state.use_demo = False
 # 如果侧边栏没有上传文件，也没有体验示例，那数据就是 None
 # 我们需要先在主界面接收文件，所以先把读取逻辑放在这里，等待文件传入
 # ==========================================
-# UI 渲染区
+# UI 渲染区 (极简沉浸式)
 # ==========================================
 
-# 如果还没有数据（既没传文件，也没点示例）
-# 注意：因为没侧边栏，我们在这里接收上传
+# 核心判断逻辑：如果没数据，显示欢迎页
 if not st.session_state.use_demo:
-    # 用一个居中的列布局来限制宽度，让卡片显得精致
+    st.markdown("<br><br>", unsafe_allow_html=True)
     c1, c2, c3 = st.columns([1, 2, 1])
+    
     with c2:
-        # 这是中间的大卡片
+        # 加一个大号图标镇场子
+        st.markdown("<div style='text-align: center; font-size: 4rem; margin-bottom: 1rem;'>🤖</div>", unsafe_allow_html=True)
+        
+        # 使用带有边框的卡片
         with st.container(border=True):
-            st.markdown("<h3 style='text-align: center; color: #004b87;'>拖拽 Excel 开始体验</h3>", unsafe_allow_html=True)
-            st.markdown("<p style='text-align: center; color: #888;'>支持 .xlsx, .csv 格式</p >", unsafe_allow_html=True)
+            st.markdown("<h3 style='text-align: center; color: #004b87; margin-bottom: 0;'>拖拽 Excel 开始体验</h3>", unsafe_allow_html=True)
+            st.markdown("<p style='text-align: center; color: #888; font-size: 14px;'>支持 .xlsx, .csv 格式，或点击下方一键体验</p >", unsafe_allow_html=True)
             
-            # 核心：将上传框移到中间卡片内
+            # 上传组件
             uploaded_files = st.file_uploader("上传文件", type=["xlsx", "csv"], label_visibility="collapsed", accept_multiple_files=True)
             
             st.divider()
-            st.markdown("<p style='text-align: center; font-size: 14px;'>没有数据？试试一键载入内置示例</p >", unsafe_allow_html=True)
             
-            # 示例选择下拉框
-            demo_option = st.selectbox("选择示例数据", ["不使用示例", "📈 电商店铺一季度销售诊断", "🎓 学生期末成绩分析"], label_visibility="collapsed")
+            # 🌟 重点：不用下拉框，用三个快捷按钮替代
+            st.markdown("<p style='text-align: center; color: #666; font-size: 14px; margin-bottom: 10px;'>没有数据？点击体验内置场景</p >", unsafe_allow_html=True)
             
-            # 如果选了示例，改变状态并刷新
-            if demo_option != "不使用示例":
-                st.session_state.use_demo = True
-                st.session_state.demo_type = demo_option
-                st.rerun()
+            btn_c1, btn_c2 = st.columns(2)
+            with btn_c1:
+                if st.button("📈 体验电商销售数据", use_container_width=True):
+                    st.session_state.use_demo = True
+                    st.session_state.demo_type = "📈 电商店铺一季度销售诊断"
+                    st.rerun()
+            with btn_c2:
+                if st.button("🎓 体验成绩分析数据", use_container_width=True):
+                    st.session_state.use_demo = True
+                    st.session_state.demo_type = "🎓 学生期末成绩分析"
+                    st.rerun()
 
-    # 底部对话框输入
-    user_input = st.chat_input("在这里输入你的需求，或者先去上方拖拽文件...")
+    # 底部输入框
+    user_input = st.chat_input("或者直接告诉我你想分析什么...")
     if user_input:
-        st.warning("💡 请先在上方卡片上传数据或选择示例哦！")
+        st.warning("💡 请先在上方卡片上传数据，或点击快捷按钮体验哦！")
 
 # ==========================================
 # 如果有数据了（上传了或者选了示例）
 # ==========================================
 if st.session_state.use_demo or (('uploaded_files' in locals() or 'uploaded_files' in globals()) and uploaded_files):
-    # --- 数据读取逻辑 ---
     try:
+        # --- 数据加载逻辑 ---
         if st.session_state.use_demo:
             demo_type = st.session_state.demo_type
             if demo_type == "📈 电商店铺一季度销售诊断":
@@ -113,14 +121,13 @@ if st.session_state.use_demo or (('uploaded_files' in locals() or 'uploaded_file
             df_raw = dfs[0] if len(dfs)== 1 else pd.concat(dfs, ignore_index=True, sort=False)
             
         # 清洗数据
-        df = clean_dataframe(df_raw, False, False, True) # 默认做一些温和清洗
+        df = clean_dataframe(df_raw, False, False, True)
         col_types = analyze_columns(df)
         df = force_convert_numeric(df, col_types)
         st.session_state.auto_charts = auto_recommend_charts(df, col_types)
         
-        # ================= 以下渲染三栏分析界面 =================
+        # ================= 数据加载完毕，渲染三栏工作台 =================
         
-        # 顶部状态栏
         c_title, c_reset = st.columns([8, 2])
         with c_title:
             st.markdown("<h3 style='margin:0; color:#004b87;'>数据分析工作台</h3>", unsafe_allow_html=True)
@@ -135,10 +142,8 @@ if st.session_state.use_demo or (('uploaded_files' in locals() or 'uploaded_file
         with col_left:
             with st.container(border=True):
                 st.subheader("🧹 工具箱")
-                # 把原本在侧边栏的清洗选项移到这里
                 st.checkbox("删除完全重复行", value=True)
                 st.checkbox("数值列缺失值填均值", value=True)
-                
                 st.divider()
                 st.subheader("📊 核心指标")
                 st.metric("数据行数", df.shape[0])
@@ -150,12 +155,10 @@ if st.session_state.use_demo or (('uploaded_files' in locals() or 'uploaded_file
                 with st.expander("🔍 预览前 10 行数据"):
                     st.dataframe(df.head(10), use_container_width=True)
                     
-                # 历史对话
                 for msg in st.session_state.chat_history:
                     with st.chat_message(msg["role"]):
                         st.markdown(msg["content"])
                         
-            # 中间的输入框
             user_input = st.chat_input("向 AI 提问，例如：帮我找出利润异常的商品...")
             if user_input:
                 st.session_state.chat_history.append({"role": "user", "content": user_input})
@@ -176,12 +179,8 @@ if st.session_state.use_demo or (('uploaded_files' in locals() or 'uploaded_file
                     st.plotly_chart(fig, use_container_width=True)
                 else:
                     st.info("暂无图表")
-                    
                 st.divider()
                 st.button("📥 一键导出报告", use_container_width=True, type="primary")
 
     except Exception as e:
         st.error(f"数据读取或解析失败：{e}")
-
-st.markdown("---")
-st.caption("智析 DataSight v3.6｜沉浸式极简版")
