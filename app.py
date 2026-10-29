@@ -116,10 +116,7 @@ st.sidebar.download_button(
 )
 
 # ==========================================
-# 3. 主流程
-# ==========================================
-# ==========================================
-# 3. 主界面：WorkBuddy 式 Copilot 布局
+# 3. 主流程：数据读取与 WorkBuddy 居中交互
 # ==========================================
 
 # 顶部大标题
@@ -127,60 +124,99 @@ st.markdown("<h1 style='text-align: center; color: #004b87; font-family: serif;'
 st.markdown("<p style='text-align: center; color: #666;'>零门槛的 AI 数据可视化与洞察助手</p >", unsafe_allow_html=True)
 st.markdown("<br>", unsafe_allow_html=True)
 
-# 如果没有任何数据，显示上方的上传引导
+# 🌟 第一步：前置数据读取（必须放在渲染最前面，防止 df 未定义报错）
+# 注意：这里用到了你在侧边栏定义的 uploaded_files 和 demo_option
 if not uploaded_files and demo_option == "不使用示例":
-    # 中间展示一个极简的提示
+    df_raw = pd.DataFrame() # 空数据
+else:
+    try:
+        if demo_option != "不使用示例":
+            # --- 这里保留你原本生成电商/学生数据的逻辑 ---
+            if demo_option == "📈 电商店铺一季度销售诊断":
+                # (请把你原本生成电商 df_demo 的代码粘回这里)
+                # ... 代码省略，保持你原本的样子 ...
+                pass # 替换为你实际的生成逻辑，赋值给 df_raw
+            elif demo_option == "🎓 学生期末成绩分析":
+                # ... 生成成绩数据 ...
+                pass
+        else:
+            dfs = []
+            for file in uploaded_files:
+                label = file.name.rsplit('.', 1)[0]
+                temp_df = load_single_file(file)
+                temp_df.columns = temp_df.columns.str.strip()
+                if len(uploaded_files) > 1: temp_df["数据周期"] = label
+                dfs.append(temp_df)
+            df_raw = dfs[0] if len(dfs)== 1 else pd.concat(dfs, ignore_index=True, sort=False)
+    except Exception as e:
+        st.error(f"数据读取失败：{e}"); st.stop()
+
+# 🌟 第二步：执行清洗（保留你原本的逻辑）
+# 你需要确保在侧边栏（或左边栏）已经定义了 drop_dup, drop_na_rows, fill_na_num
+df = clean_dataframe(df_raw, drop_dup, drop_na_rows, fill_na_num)
+col_types = analyze_columns(df)
+df = force_convert_numeric(df, col_types)
+
+# ==========================================
+# 🌟 第三步：居中 AI 交互界面 + 左侧工具栏
+# ==========================================
+
+# 如果现在还没有数据，展示居中的极简上传区
+if not uploaded_files and demo_option == "不使用示例":
+    # 居中放上传框（模拟 WorkBuddy）
     c1, c2, c3 = st.columns([1, 2, 1])
     with c2:
-        st.info("👇 请在左侧边栏上传 Excel，或选择【试试内置示例】")
         st.markdown("""
-        <div style="background: #f7f9f8; border-left: 5px solid #004b87; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-            <h4 style="margin: 0 0 5px 0; color: #004b87; font-size: 16px;">🚀 极速体验通道</h4>
-            <p style="margin: 0; color: #555; font-size: 14px;">手头没有数据？请在侧边栏选择一个场景，一键生成诊断报告。</p >
-        </div>
-        <div style="background: #e8f0ef; border-left: 5px solid #5f9ea0; padding: 15px; border-radius: 8px;">
-            <h4 style="margin: 0 0 5px 0; color: #3e7375; font-size: 16px;">🛡️ 数据格式规范</h4>
-            <ul style="margin: 0; padding-left: 20px; color: #555; font-size: 13px;">
-                <li>第一行必须为单行表头</li>
-                <li>尽量不要有合并单元格</li>
-                <li>清理掉“缺考”等非数字字符</li>
-            </ul>
+        <div style="text-align: center; margin-bottom: 20px;">
+            <span style="background: #e6f0fa; padding: 5px 15px; border-radius: 15px; font-size: 12px; color: #004b87;">📊 自动图表</span>
+            <span style="background: #e8f0ef; padding: 5px 15px; border-radius: 15px; font-size: 12px; color: #3e7375;">🤖 AI 智能诊断</span>
         </div>
         """, unsafe_allow_html=True)
-    st.stop() # 没数据就停在这里，不往下渲染了
+        
+        st.info("👇 请在下方拖拽 Excel 文件，或在左侧选择【试试内置示例】")
+        st.file_uploader("上传你的数据文件", type=["xlsx", "xls", "csv"], accept_multiple_files=True, label_visibility="collapsed")
+        
+        st.markdown("<br>", unsafe_allow_html=True)
+        # 聊天输入框在页面底部
+        user_input = st.chat_input("或者直接对我说：'帮我分析一下上个月的电商销售数据'")
+        if user_input:
+            st.warning("💡 提示：请先上传数据，或者去左侧选择【内置示例】，AI 才能帮你干活哦！")
+            
+    # 没数据就停住，不往下渲染
+    st.stop()
 
 # ==========================================
-# 🌟 有数据后，渲染下方的三栏布局
+# 🌟 第四步：有数据后的三栏布局
 # ==========================================
-
-# 划分三栏：左(1份宽) 中(2.5份宽) 右(1.5份宽)
+# 划分三栏：左(工具) - 中(对话交互) - 右(图表)
 col_left, col_center, col_right = st.columns([1, 2.5, 1.5])
 
 with col_left:
-    st.subheader("🧹 数据清洗箱")
-    # 把原本在侧边栏的清洗选项移到这里
+    st.subheader("🧹 高级数据清洗")
+    # 这里的 checkbox 会实时刷新页面，触发重新计算，因为上面的 clean_dataframe 会读取它们
     drop_dup = st.checkbox("删除完全重复行", value=True)
     drop_na_rows = st.checkbox("删除含缺失值的行", value=False)
     fill_na_num = st.checkbox("数值列缺失值填均值", value=True)
     
     st.divider()
     st.subheader("📊 核心指标")
-    st.metric("数据总行数", df.shape[0])
+    st.metric("数据总行数", df.shape[0])  # 这样就不会报错了
     st.metric("数据总列数", df.shape[1])
 
 with col_center:
     st.subheader("💬 与 AI 分析师对话")
     
-    # 数据预览折叠框
+    # 把数据预览折叠起来，不占地方
     with st.expander("🔍 预览清洗后的数据 (前 10 行)", expanded=False):
         st.dataframe(df.head(10), use_container_width=True)
         
     st.markdown("---")
     
-    # 聊天气泡展示区
+    # 确保 chat_history 存在
     if "chat_history" not in st.session_state:
         st.session_state.chat_history = []
         
+    # 渲染历史对话
     for msg in st.session_state.chat_history:
         with st.chat_message(msg["role"]):
             st.markdown(msg["content"])
@@ -193,7 +229,7 @@ with col_center:
             st.markdown(user_input)
             
         with st.chat_message("assistant"):
-            with st.spinner("AI 正在解析..."):
+            with st.spinner("AI 正在调用底层数据计算..."):
                 summary = build_data_summary(df, col_types)
                 recent_history = st.session_state.chat_history[-10:]
                 ai_response = st.write_stream(
@@ -203,15 +239,19 @@ with col_center:
         st.rerun()
 
 with col_right:
-    st.subheader("📈 自动洞察图表")
+    st.subheader("📈 自动洞察")
+    # 为了不让右边太单调，我们把自动生成的图表放一个过来
     if "auto_charts" in st.session_state and st.session_state.auto_charts:
-        # 只展示第一张最核心的图
         title, fig = st.session_state.auto_charts[0]
         st.markdown(f"**{title}**")
         st.plotly_chart(fig, use_container_width=True)
     else:
-        st.info("暂无推荐图表")
-        
+        # 如果图表状态没缓存，用最新的 df 重新算一下，防报错
+        temp_charts = auto_recommend_charts(df, col_types)
+        if temp_charts:
+            title, fig = temp_charts[0]
+            st.markdown(f"**{title}**")
+            st.plotly_chart(fig, use_container_width=True)
+            
     st.divider()
-    # 预留的导出按钮
     st.button("📥 一键导出定制化报告", use_container_width=True)
