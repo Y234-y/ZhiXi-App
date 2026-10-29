@@ -12,17 +12,63 @@ from ai_utils import build_data_summary, call_llm_analysis, call_llm_chat, fig_t
 
 # 🌟 页面配置：默认收起侧边栏，实现极简居中
 st.set_page_config(page_title="智析 DataSight", layout="wide", page_icon="📊", initial_sidebar_state="collapsed")
-st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
 
-# 极简的全局样式
+# 🌟 注入高级科技感 CSS
 st.markdown("""
 <style>
-    .stApp { background-color: #f7f9f8; }
-    .main-title { text-align: center; color: #004b87; font-weight: 800; font-size: 3rem; margin-top: 3rem; margin-bottom: 0.5rem; }
-    .sub-title { text-align: center; color: #6c757d; font-size: 1.2rem; margin-bottom: 4rem; }
+    /* 隐藏 Streamlit 默认的顶部白条，防止标题被切 */
+    header {visibility: hidden;}
+    
+    /* 极光渐变背景（科技蓝 + 水墨青） */
+    .stApp {
+        background: radial-gradient(circle at 10% 20%, rgba(0, 75, 135, 0.05) 0%, transparent 40%),
+                    radial-gradient(circle at 90% 80%, rgba(95, 158, 160, 0.08) 0%, transparent 40%),
+                    #f7f9f8;
+    }
+    
+    /* 大标题排版 */
+    .main-title { 
+        text-align: center; 
+        color: #004b87; 
+        font-weight: 900; 
+        font-size: 3.5rem; 
+        margin-top: 4rem; 
+        margin-bottom: 0.5rem;
+        letter-spacing: 2px;
+    }
+    .sub-title { 
+        text-align: center; 
+        color: #6c757d; 
+        font-size: 1.2rem; 
+        margin-bottom: 2rem; 
+    }
+    
+    /* 毛玻璃卡片特效（覆盖 Streamlit 原生的 container） */
+    [data-testid="stVerticalBlockBorderWrapper"] {
+        background: rgba(255, 255, 255, 0.6) !important;
+        backdrop-filter: blur(12px) !important;
+        -webkit-backdrop-filter: blur(12px) !important;
+        border: 1px solid rgba(255, 255, 255, 0.8) !important;
+        border-radius: 20px !important;
+        box-shadow: 0 10px 30px -10px rgba(0,0,0,0.08) !important;
+        padding: 2.5rem 2rem !important;
+    }
+    
+    /* 按钮特效 */
+    .stButton>button {
+        border-radius: 10px !important;
+        font-weight: 600 !important;
+        transition: all 0.3s ease !important;
+    }
+    
+    /* 底部对话框美化 */
+    [data-testid="stChatInput"] {
+        border-radius: 15px !important;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05) !important;
+        border: 1px solid #e0e0e0 !important;
+    }
 </style>
 """, unsafe_allow_html=True)
-
 # 状态初始化
 if "chat_history" not in st.session_state: st.session_state.chat_history = []
 if "auto_charts" not in st.session_state: st.session_state.auto_charts = []
@@ -60,9 +106,9 @@ if not st.session_state.use_demo:
     c1, c2, c3 = st.columns([1, 2, 1])
     
     with c2:
-        # 加一个大号图标镇场子
-        st.markdown("<div style='text-align: center; font-size: 4rem; margin-bottom: 1rem;'>🤖</div>", unsafe_allow_html=True)
         
+        # 在 UI 渲染区的 c2 列里面：
+        st.markdown("<div style='text-align: center; font-size: 4rem; margin-bottom: 1rem;'>✨</div>", unsafe_allow_html=True)
         # 使用带有边框的卡片
         with st.container(border=True):
             st.markdown("<h3 style='text-align: center; color: #004b87; margin-bottom: 0;'>拖拽 Excel 开始体验</h3>", unsafe_allow_html=True)
