@@ -76,6 +76,7 @@ if has_data:
     except Exception as e:
         st.error(f"数据加载失败：{e}")
         st.session_state.use_demo = False
+# 4. 渲染：无数据时的极简首页
 if not has_data:
     st.markdown("<div class='main-title'>智析 DataSight</div>", unsafe_allow_html=True)
     st.markdown("<div class='sub-title'>零门槛的 AI 数据可视化与洞察助手</div>", unsafe_allow_html=True)
@@ -86,26 +87,26 @@ if not has_data:
             st.markdown("<h3 style='text-align: center; color: #004b87; margin-bottom: 0;'>📂 拖拽 Excel 开始分析</h3>", unsafe_allow_html=True)
             st.markdown("<p style='text-align: center; color: #888; font-size: 14px;'>支持 .xlsx, .csv 格式</p >", unsafe_allow_html=True)
             
-           # 1. 先把上传框放出来（不要在里面立刻处理数据）
-           uploaded_files = st.file_uploader("上传", type=["xlsx", "csv"], label_visibility="collapsed", accept_multiple_files=True)
-
-           # 2. 只有用户点了按钮，才真正开始读取数据
-           if uploaded_files:
-               if st.button("🚀 开始数据解析", use_container_width=True, type="primary"):
-                   with st.spinner("正在读取并清洗数据，请稍候..."):
-                       try:
-                           dfs = [load_single_file(f) for f in uploaded_files]
-                           df_raw = dfs[0] if len(dfs)==1 else pd.concat(dfs, ignore_index=True, sort=False)
-                           df = clean_dataframe(df_raw, True, "不处理", False)
-                
-                           # 存下清理好的数据，防止跳转后丢失
-                           st.session_state.user_df = df
-                           st.session_state.use_demo = True
-                           st.session_state.demo_type = "真实数据"
-                           st.rerun()
-                       except Exception as e:
+            # 1. 上传框
+            uploaded_files = st.file_uploader("上传", type=["xlsx", "csv"], label_visibility="collapsed", accept_multiple_files=True)
+            
+            # 2. 用户点击按钮后才处理
+            if uploaded_files:
+                if st.button("🚀 开始数据解析", use_container_width=True, type="primary"):
+                    with st.spinner("正在读取并清洗数据，请稍候..."):
+                        try:
+                            dfs = [load_single_file(f) for f in uploaded_files]
+                            df_raw = dfs[0] if len(dfs)==1 else pd.concat(dfs, ignore_index=True, sort=False)
+                            df = clean_dataframe(df_raw, True, "不处理", False)
+                            
+                            st.session_state.user_df = df
+                            st.session_state.use_demo = True
+                            st.session_state.demo_type = "真实数据"
+                            st.rerun()
+                        except Exception as e:
                             st.error(f"读取失败：{e}")
             
+            # 3. 分隔线和体验按钮
             st.markdown("<p style='text-align: center; color: #a0b0c0; margin: 15px 0;'>—— 或者一键体验内置场景 ——</p >", unsafe_allow_html=True)
             
             col_btn1, col_btn2 = st.columns(2)
@@ -115,6 +116,7 @@ if not has_data:
             with col_btn2:
                 if st.button("🎓 学生成绩分析", use_container_width=True):
                     st.session_state.use_demo = True; st.session_state.demo_type = "成绩"; st.rerun()
+            
 # 5. 渲染：有数据时的三栏工作台
 if has_data and df is not None:
     c_title, c_reset = st.columns([8, 2])
