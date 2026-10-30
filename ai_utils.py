@@ -52,9 +52,20 @@ def call_llm_analysis(api_key, model, data_summary, system_prompt):
 def call_llm_chat(api_key, model, data_summary, chat_history, user_query, system_prompt):
     url = "https://api.deepseek.com/chat/completions"
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
-    messages = [{"role": "system", "content": system_prompt}]
+    
+    # 🌟 核心修改：把数据摘要（data_summary）强行拼接到系统提示词里！
+    full_system_prompt = f"""{system_prompt}
+    
+【当前数据集的核心摘要如下，请严格基于此回答，不要反问用户】：
+{data_summary}
+"""
+    
+    messages = [{"role": "system", "content": full_system_prompt}]  # 这里用 full_system_prompt
+    
     for msg in chat_history: messages.append(msg)
     messages.append({"role": "user", "content": user_query})
+    
+    payload = {"model": model, "messages": messages, "temperature": 0.3, "stream": True}
     payload = {"model": model, "messages": messages, "temperature": 0.3, "stream": True}
     try:
         resp = requests.post(url, headers=headers, json=payload, timeout=60, stream=True)
