@@ -41,26 +41,41 @@ has_data = st.session_state.use_demo
 
 if has_data:
     try:
+        # 🌟 1. 如果选的是内置示例
         if st.session_state.get("demo_type") == "电商":
             np.random.seed(42)
             days = pd.date_range("2024-01-01", periods=90, freq="D")
             df_raw = pd.DataFrame({"日期": days.astype(str), "类目": np.random.choice(["女装", "数码"], 90), "销售额": np.random.randint(1000, 10000, 90), "数据周期": ""})
             df_raw.loc[:29, "数据周期"] = "1月"; df_raw.loc[30:59, "数据周期"] = "2月"; df_raw.loc[60:, "数据周期"] = "3月"
-        elif st.session_state.get("demo_type") == "成绩":
-            df_raw = pd.DataFrame({"班级": np.random.choice(["一班", "二班"], 50), "语文": np.random.randint(60, 100, 50), "数学": np.random.randint(50, 100, 50)})
-        else:
-            # 如果是上传的真实数据，在这里处理（为了防错，这里留空，逻辑在首页处理）
-            df_raw = pd.DataFrame()
             
-        if not df_raw.empty:
             df = clean_dataframe(df_raw, strip_space=True, na_strategy="不处理", drop_outliers=False)
             col_types = analyze_columns(df)
             df = force_convert_numeric(df, col_types)
             st.session_state.auto_charts = auto_recommend_charts(df, col_types)
+
+        elif st.session_state.get("demo_type") == "成绩":
+            df_raw = pd.DataFrame({"班级": np.random.choice(["一班", "二班"], 50), "语文": np.random.randint(60, 100, 50), "数学": np.random.randint(50, 100, 50)})
+            
+            df = clean_dataframe(df_raw, strip_space=True, na_strategy="不处理", drop_outliers=False)
+            col_types = analyze_columns(df)
+            df = force_convert_numeric(df, col_types)
+            st.session_state.auto_charts = auto_recommend_charts(df, col_types)
+
+        # 🌟 2. 如果上传的是真实数据（从缓存里直接拿，绝不丢失！）
+        elif st.session_state.get("demo_type") == "真实数据":
+            df = st.session_state.get("user_df", None)
+            if df is not None:
+                col_types = analyze_columns(df)
+                df = force_convert_numeric(df, col_types)
+                st.session_state.auto_charts = auto_recommend_charts(df, col_types)
+            else:
+                # 如果缓存里真没有，退回首页
+                st.session_state.use_demo = False
+                st.rerun()
+                
     except Exception as e:
         st.error(f"数据加载失败：{e}")
         st.session_state.use_demo = False
-# 4. 渲染：无数据时的极简首页
 if not has_data:
     st.markdown("<div class='main-title'>智析 DataSight</div>", unsafe_allow_html=True)
     st.markdown("<div class='sub-title'>零门槛的 AI 数据可视化与洞察助手</div>", unsafe_allow_html=True)
@@ -71,17 +86,25 @@ if not has_data:
             st.markdown("<h3 style='text-align: center; color: #004b87; margin-bottom: 0;'>📂 拖拽 Excel 开始分析</h3>", unsafe_allow_html=True)
             st.markdown("<p style='text-align: center; color: #888; font-size: 14px;'>支持 .xlsx, .csv 格式</p >", unsafe_allow_html=True)
             
-            uploaded_files = st.file_uploader("上传", type=["xlsx", "csv"], label_visibility="collapsed", accept_multiple_files=True)
-            
-            if uploaded_files:
-                dfs = [load_single_file(f) for f in uploaded_files]
-                df_raw = dfs[0] if len(dfs)==1 else pd.concat(dfs, ignore_index=True, sort=False)
-                df = clean_dataframe(df_raw, True, "不处理", False)
-                col_types = analyze_columns(df)
-                st.session_state.auto_charts = auto_recommend_charts(df, col_types)
-                st.session_state.use_demo = True
-                st.session_state.demo_type = "真实数据"
-                st.rerun()
+           # 1. 先把上传框放出来（不要在里面立刻处理数据）
+           uploaded_files = st.file_uploader("上传", type=["xlsx", "csv"], label_visibility="collapsed", accept_multiple_files=True)
+
+           # 2. 只有用户点了按钮，才真正开始读取数据
+           if uploaded_files:
+               if st.button("🚀 开始数据解析", use_container_width=True, type="primary"):
+                   with st.spinner("正在读取并清洗数据，请稍候..."):
+                       try:
+                           dfs = [load_single_file(f) for f in uploaded_files]
+                           df_raw = dfs[0] if len(dfs)==1 else pd.concat(dfs, ignore_index=True, sort=False)
+                           df = clean_dataframe(df_raw, True, "不处理", False)
+                
+                           # 存下清理好的数据，防止跳转后丢失
+                           st.session_state.user_df = df
+                           st.session_state.use_demo = True
+                           st.session_state.demo_type = "真实数据"
+                           st.rerun()
+                       except Exception as e:
+                            st.error(f"读取失败：{e}")
             
             st.markdown("<p style='text-align: center; color: #a0b0c0; margin: 15px 0;'>—— 或者一键体验内置场景 ——</p >", unsafe_allow_html=True)
             
