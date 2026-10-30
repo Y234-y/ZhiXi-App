@@ -3,6 +3,6 @@ pandas
 numpy
 plotly
 requests
-kaleido==0.2.1
+kaleido
 openpyxl
-python-dox
+python-docx
