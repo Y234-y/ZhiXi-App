@@ -175,16 +175,31 @@ else:
         # 渲染对话历史
         for msg in st.session_state.chat_history:
             with st.chat_message(msg["role"]):
-                st.markdown(msg["content"])
-                
-                # 🌟 核心杀手锏：如果 AI 吐出了代码，直接把底层图画出来！
-                if "import matplotlib.pyplot as plt" in msg["content"] or "```python" in msg["content"]:
-                    st.markdown("<div style='background:#f8fafc; padding:15px; border-radius:10px; border-left:4px solid #004b87; margin-top:15px;'><b>🖼️ 系统自动渲染的交互式图表：</b></div>", unsafe_allow_html=True)
+        
+                # 🌟 终极过滤：干掉大模型画的字符草图
+                clean_content = msg["content"]
+                if msg["role"] == "assistant":
+            # 1. 删掉代码块
+                    clean_content = re.sub(r'```.*?```', '\n*(📊 图表已由系统自动渲染，见下方)*\n', clean_content, flags=re.DOTALL)
+            # 2. 删掉用 | 和 + 拼出来的丑图
+                    lines = clean_content.split('\n')
+                    filtered_lines = []
+                    for line in lines:
+                        if line.count('|') > 2 or line.count('+') > 2:
+                            continue
+                        filtered_lines.append(line)
+                    clean_content = '\n'.join(filtered_lines)
+        
+        # 渲染净化后的文字
+                st.markdown(clean_content)
+        
+        # 🌟 自动出真图的逻辑保留
+                if "import matplotlib.pyplot as plt" in msg["content"] or "```python" in msg["content"] or "图表" in msg["content"]:
+                    st.markdown("<div style='background:#f8fafc; padding:10px; border-radius:10px; border-left:4px solid #004b87; margin-top:10px; margin-bottom:10px;'><b>🖼️ 系统真实渲染图表：</b></div>", unsafe_allow_html=True)
                     if st.session_state.auto_charts:
                         for i in range(0, min(2, len(st.session_state.auto_charts))):
                             title, fig = st.session_state.auto_charts[i]
                             st.plotly_chart(fig, use_container_width=True)
-
 # ==========================================
 # 8. 底部输入框（顶格写）
 # ==========================================
