@@ -158,10 +158,40 @@ with col_left:
 # ================= 右侧：主对话展示区 =================
 with col_right:
     if not st.session_state.get("use_demo"):
-        # 未加载数据时的空状态
-        st.markdown("<br><br><br><br>", unsafe_allow_html=True)
-        st.markdown("<h1 style='text-align: center; color: #004b87; font-size: 3rem;'>智析 DataSight</h1>", unsafe_allow_html=True)
-        st.markdown("<p style='text-align: center; color: #888;'>请在左侧上传数据，或点击体验示例，开启您的 AI 数据之旅。</p >", unsafe_allow_html=True)
+    # 未加载数据时的空状态
+    st.markdown("<br><br><br>", unsafe_allow_html=True)
+    st.markdown("<h1 style='text-align: center; color: #004b87; font-size: 3.5rem; font-weight: 800;'>智析 DataSight</h1>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: #888; font-size: 1.1rem; margin-bottom: 3rem;'>请在左侧选择数据源，开启您的 AI 数据之旅。</p >", unsafe_allow_html=True)
+    
+    # 🌟 加上三个科技感的引导卡片
+    c1, c2, c3 = st.columns(3)
+    
+    with c1:
+        st.markdown("""
+        <div style="background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); text-align: center; border: 1px solid #f0f0f0;">
+            <div style="font-size: 30px; margin-bottom: 10px;">📊</div>
+            <h4 style="margin: 0; color: #004b87;">一键出图</h4>
+            <p style="font-size: 13px; color: #888; margin-top: 5px;">上传表格，自动推荐最合适的柱状图、折线图</p >
+        </div>
+        """, unsafe_allow_html=True)
+        
+    with c2:
+        st.markdown("""
+        <div style="background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); text-align: center; border: 1px solid #f0f0f0;">
+            <div style="font-size: 30px; margin-bottom: 10px;">🔮</div>
+            <h4 style="margin: 0; color: #004b87;">趋势预测</h4>
+            <p style="font-size: 13px; color: #888; margin-top: 5px;">AI 自动拟合历史数据，预测未来 7-30 天走向</p >
+        </div>
+        """, unsafe_allow_html=True)
+        
+    with c3:
+        st.markdown("""
+        <div style="background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); text-align: center; border: 1px solid #f0f0f0;">
+            <div style="font-size: 30px; margin-bottom: 10px;">📝</div>
+            <h4 style="margin: 0; color: #004b87;">智能洞察</h4>
+            <p style="font-size: 13px; color: #888; margin-top: 5px;">用大白话提问，AI 帮你写汇报、甚至直接导出 Word</p >
+        </div>
+        """, unsafe_allow_html=True)
     else:
         # 加载数据后的沉浸式聊天区
         # 1. 先渲染预测图（如果有）
@@ -178,7 +208,7 @@ with col_right:
             with st.chat_message(msg["role"]):
                 st.markdown(msg["content"])
                 # 如果对话里有图表缓存，直接展示在气泡里
-                if "fig" in msg:
+                if msg.get("fig") is not None:
                     st.plotly_chart(msg["fig"], use_container_width=True)
 
         # 3. 底部输入框（AI 对话框）
