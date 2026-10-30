@@ -1,5 +1,6 @@
-# data_utils.py
+import numpy as np
 import pandas as pd
+
 
 TIME_KEYWORDS = ["date", "time", "日期", "时间", "年", "月", "日", "dt", "timestamp"]
 ID_KEYWORDS = ["id", "编号", "序号", "学号", "工号"]
@@ -47,15 +48,33 @@ def detect_column_type(series: pd.Series, col_name: str = ""):
 def analyze_columns(df):
     return {c: detect_column_type(df[c], c) for c in df.columns}
 
-def clean_dataframe(df, drop_dup, drop_na_rows, fill_na_num):
+# data_utils.py 里的清洗函数替换
+
+def clean_dataframe(df, strip_space, na_strategy, drop_outliers):
     df = df.copy()
-    df = df.dropna(axis=1, how="all").dropna(axis=0, how="all")
-    if drop_dup: df = df.drop_duplicates()
-    if drop_na_rows: df = df.dropna()
-    if fill_na_num:
-        for c in df.columns:
-            if pd.api.types.is_numeric_dtype(df[c]):
-                df[c] = df[c].fillna(df[c].mean())
+    
+    # 1. 文本清洗
+    if strip_space:
+        df.columns = df.columns.str.strip()
+        for col in df.select_dtypes(include=['object']).columns:
+            df[col] = df[col].astype(str).str.strip().replace('nan', np.nan)
+
+    # 2. 缺失值处理
+    if na_strategy == "删除包含缺失的行":
+        df = df.dropna()
+    elif na_strategy == "数值填均值":
+        for col in df.select_dtypes(include=['number']).columns:
+            df[col] = df[col].fillna(df[col].mean())
+    elif na_strategy == "数值填中位数":
+        for col in df.select_dtypes(include=['number']).columns:
+            df[col] = df[col].fillna(df[col].median())
+
+    # 3. 异常值处理 (3倍标准差剔除)
+    if drop_outliers:
+        for col in df.select_dtypes(include=['number']).columns:
+            mean, std = df[col].mean(), df[col].std()
+            if std > 0: # 防止除以0
+                df = df[(df[col] >= mean - 3 * std) & (df[col] <= mean + 3 * std)]
     return df
 
 def force_convert_numeric(df, col_types):
