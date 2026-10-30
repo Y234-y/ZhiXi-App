@@ -6,8 +6,9 @@ import io
 import json
 import re
 import requests
+import uuid
 
-# 引入你的底层模块
+# 引入你的底层模块 (确保这些文件存在)
 from data_utils import load_single_file, analyze_columns, clean_dataframe, force_convert_numeric
 from chart_utils import auto_recommend_charts
 from ai_utils import build_data_summary, call_llm_chat
@@ -73,7 +74,6 @@ if has_data:
             df = force_convert_numeric(df, col_types)
             st.session_state.auto_charts = auto_recommend_charts(df, col_types)
             
-            # 🌟 修复：在这里把日期和数值列取出来，供底部对话使用
             date_cols = [c for c, t in col_types.items() if t == "datetime"]
             num_cols = [c for c, t in col_types.items() if t == "numeric"]
             
@@ -88,7 +88,7 @@ if not has_data:
     st.markdown("<h1 style='text-align: center; color: #004b87; font-size: 3.5rem; font-weight: 800;'>智析 DataSight</h1>", unsafe_allow_html=True)
     st.markdown("<p style='text-align: center; color: #888; font-size: 1.1rem; margin-bottom: 3rem;'>请在下方上传数据，开启您的 AI 数据之旅。</p >", unsafe_allow_html=True)
     
-    c_empty1, c_center, c_empty2 = st.columns([1, 2, 1])
+    _, c_center, _ = st.columns([1, 2, 1])
     with c_center:
         with st.container(border=True):
             st.markdown("<h4 style='text-align: center; color: #004b87;'>📂 拖拽或点击上传数据</h4>", unsafe_allow_html=True)
@@ -132,7 +132,6 @@ else:
     with st.sidebar:
         st.markdown("### 🛠️ 操作面板")
         with st.container(border=True):
-            st.markdown("**📥 导出报表**")
             if st.button("一键生成 Word", use_container_width=True, type="primary"):
                 latest_ai_text = st.session_state.chat_history[-1]["content"] if st.session_state.chat_history else "暂无"
                 word_data = generate_word_report(df, clean_text_for_word(latest_ai_text), st.session_state.get("pred_chart") or (st.session_state.auto_charts[0][1] if st.session_state.auto_charts else None))
@@ -148,7 +147,6 @@ else:
                 with st.spinner("正在生成群聊话术..."):
                     chat_copy = st.write_stream(call_llm_chat(api_key, model_name, "无", [], prompt, "你是职场汇报专家"))
                     st.session_state.copy_text = chat_copy
-        
         if st.session_state.get("copy_text"):
             st.text_area("复制以下文本发给领导：", st.session_state.copy_text, height=150)
 
@@ -163,45 +161,36 @@ else:
     # 7. 渲染：有数据时的主内容区
     # ==========================================
     _, col_main, _ = st.columns([1, 8, 1])
-    
     with col_main:
         # 预测大屏
         if st.session_state.get("pred_chart"):
             st.markdown("### 📈 AI 趋势预测大屏")
-            st.plotly_chart(st.session_state.pred_chart, use_container_width=True)
+            st.plotly_chart(st.session_state.pred_chart, use_container_width=True, key="main_pred_chart")
             if st.button("❌ 关闭预测图"): st.session_state.pred_chart = None; st.rerun()
             st.divider()
 
-        # 渲染对话历史
-        for msg in st.session_state.chat_history:
+        # 渲染历史对话 (带索引，彻底解决ID冲突)
+        for idx, msg in enumerate(st.session_state.chat_history):
             with st.chat_message(msg["role"]):
-        
-                # 🌟 终极过滤：干掉大模型画的字符草图
                 clean_content = msg["content"]
                 if msg["role"] == "assistant":
-            # 1. 删掉代码块
                     clean_content = re.sub(r'```.*?```', '\n*(📊 图表已由系统自动渲染，见下方)*\n', clean_content, flags=re.DOTALL)
-            # 2. 删掉用 | 和 + 拼出来的丑图
                     lines = clean_content.split('\n')
-                    filtered_lines = []
-                    for line in lines:
-                        if line.count('|') > 2 or line.count('+') > 2:
-                            continue
-                        filtered_lines.append(line)
+                    filtered_lines = [line for line in lines if line.count('|') <= 2 and line.count('+') <= 2]
                     clean_content = '\n'.join(filtered_lines)
-        
-        # 渲染净化后的文字
+                
                 st.markdown(clean_content)
-        
-        # 🌟 自动出真图的逻辑保留
+                
+                # 自动出真图（带唯一Key）
                 if "import matplotlib.pyplot as plt" in msg["content"] or "```python" in msg["content"] or "图表" in msg["content"]:
                     st.markdown("<div style='background:#f8fafc; padding:10px; border-radius:10px; border-left:4px solid #004b87; margin-top:10px; margin-bottom:10px;'><b>🖼️ 系统真实渲染图表：</b></div>", unsafe_allow_html=True)
                     if st.session_state.auto_charts:
                         for i in range(0, min(2, len(st.session_state.auto_charts))):
                             title, fig = st.session_state.auto_charts[i]
-                            st.plotly_chart(fig, use_container_width=True)
+                            st.plotly_chart(fig, use_container_width=True, key=f"hist_{idx}_{i}")
+
 # ==========================================
-# 8. 底部输入框（顶格写）
+# 8. 底部输入框（必须顶格写）
 # ==========================================
 if st.session_state.get("use_demo"):
     user_input = st.chat_input("向 AI 提问，例如：帮我分析一下利润下滑的原因...")
