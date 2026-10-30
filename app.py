@@ -11,6 +11,13 @@ from report_utils import generate_word_report
 from predict_utils import create_forecast_chart
 from agent_utils import execute_ai_code
 
+def clean_text_for_word(text):
+    if not text: return "暂无分析内容"
+    import re
+    text = re.sub(r'#+\s', '', text)
+    text = text.replace('**', '').replace('|', ' ')
+    text = re.sub(r'\n+', '\n', text)
+    return text
 # 1. 页面配置与高级 CSS
 st.set_page_config(page_title="智析 DataSight", layout="wide", page_icon="📊", initial_sidebar_state="collapsed")
 st.markdown("""
