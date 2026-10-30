@@ -229,38 +229,41 @@ with col_right:
                 if msg.get("fig") is not None:
                     st.plotly_chart(msg["fig"], use_container_width=True)
 
-       # 3. 底部输入框（AI 对话框）
-       user_input = st.chat_input("向 AI 提问，例如：帮我分析一下利润下滑的原因...")
-       if user_input:
-           # 1. 先把用户输入存入历史并展示
-           st.session_state.chat_history.append({"role": "user", "content": user_input})
-           with st.chat_message("user"): 
-               st.markdown(user_input)
+# ==========================================
+# 底部输入框（AI 对话框）- 必须顶格写，不能缩进！
+# ==========================================
+user_input = st.chat_input("向 AI 提问，例如：帮我分析一下利润下滑的原因...")
+
+if user_input:
+    # 1. 记录并展示用户提问
+    st.session_state.chat_history.append({"role": "user", "content": user_input})
+    with st.chat_message("user"): 
+        st.markdown(user_input)
     
-           # 2. 准备接收 AI 的回复
-           ai_reply_text = ""
-           ai_fig = None
+    ai_reply_text = ""
+    ai_fig = None
     
-           with st.chat_message("assistant"):
-               # ============ 路由 1：预测 ============
-               if "预测" in user_input or "未来" in user_input:
-                   st.info("🤖 收到指令！正在启动预测引擎...")
-                   if date_cols and num_cols:
-                       days = 7
-                       match = re.search(r'(\d+)\s*天', user_input)
-                       if match: days = int(match.group(1))
+    # 2. 展示 AI 回复区
+    with st.chat_message("assistant"):
+        # 路由 1：预测
+        if "预测" in user_input or "未来" in user_input:
+            st.info("🤖 收到指令！正在启动预测引擎...")
+            if date_cols and num_cols:
+                days = 7
+                match = re.search(r'(\d+)\s*天', user_input)
+                if match: days = int(match.group(1))
                 
-                       ai_fig, msg = create_forecast_chart(df, date_cols[0], num_cols[0], periods=days)
-                       if ai_fig:
-                           st.session_state.pred_chart = ai_fig
-                           ai_reply_text = f"✅ 已为您生成未来 {days} 天的预测图表，请看主屏幕大图。"
-                       else:
-                           ai_reply_text = f"❌ 预测失败：{msg}"
-                   else:
-                       ai_reply_text = "❌ 数据缺少时间或数值列，无法预测。"
+                ai_fig, msg = create_forecast_chart(df, date_cols[0], num_cols[0], periods=days)
+                if ai_fig:
+                    st.session_state.pred_chart = ai_fig
+                    ai_reply_text = f"✅ 已为您生成未来 {days} 天的预测图表，请看主屏幕大图。"
+                else:
+                    ai_reply_text = f"❌ 预测失败：{msg}"
+            else:
+                ai_reply_text = "❌ 数据缺少时间或数值列，无法预测。"
             st.markdown(ai_reply_text)
             
-        # ============ 路由 2：Code Interpreter (写代码) ============
+        # 路由 2：Code Interpreter (写代码)
         elif any(kw in user_input for kw in ["筛选", "找出", "哪个"]):
             st.markdown("🤖 正在生成 Pandas 代码并执行...")
             res = execute_ai_code(api_key, model_name, user_input, df)
@@ -268,20 +271,20 @@ with col_right:
             st.code(str(res))
             ai_reply_text = f"✅ 代码执行完毕，结果为：\n\n{res}"
             
-        # ============ 路由 3：普通对话分析 + 导出缝合 ============
+        # 路由 3：普通对话分析 + 导出缝合
         else:
             summary = build_data_summary(df, col_types)
-            # 用打字机效果输出分析结果
+            # 流式输出文字
             ai_reply_text = st.write_stream(
                 call_llm_chat(api_key, model_name, summary, st.session_state.chat_history[-10:-1], user_input, "你是资深数据分析师")
             )
             
-            # 🌟 核心逻辑：分析完之后，如果用户提了导出，立刻弹下载按钮
+            # 如果用户提了导出，立刻弹下载按钮
             if "导出" in user_input or "报告" in user_input:
                 st.markdown("---")
                 st.markdown("📥 **已为您生成 Word 报告：**")
                 
-                # 捞取刚刚生成的真实分析文本，并清洗掉 Markdown 符号
+                # 调用刚才加的净化函数
                 clean_text = clean_text_for_word(ai_reply_text)
                 word_data = generate_word_report(df, clean_text, st.session_state.get("pred_chart") or (st.session_state.auto_charts[0][1] if st.session_state.auto_charts else None))
                 
@@ -293,10 +296,9 @@ with col_right:
                 )
                 ai_reply_text += "\n\n*(✅ 已同步生成 Word 报告，请点击上方按钮下载)*"
 
-    # 3. 最终把完整的回复存入历史记录
+    # 3. 存入历史记录并刷新
     if ai_reply_text:
         st.session_state.chat_history.append({"role": "assistant", "content": ai_reply_text, "fig": ai_fig})
         
     st.rerun()
-                st.session_state.chat_history.append({"role": "assistant", "content": ai_reply_text, "fig": ai_fig})
-            st.rerun()
+       
