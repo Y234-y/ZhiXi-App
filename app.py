@@ -7,7 +7,7 @@ import plotly.express as px
 from data_utils import load_single_file, analyze_columns, clean_dataframe, force_convert_numeric
 from chart_utils import auto_recommend_charts
 from ai_utils import build_data_summary, call_llm_chat
-
+from report_utils import generate_word_report
 # ==========================================
 # 1. 页面配置与高级 CSS 引擎
 # ==========================================
@@ -159,8 +159,35 @@ if not has_data:
     # 底部输入框
     st.markdown("<br>", unsafe_allow_html=True)
     user_input = st.chat_input("或者直接告诉我你想分析什么...")
+    # ... 前面是获取 user_input 的逻辑
     if user_input:
-        st.warning("💡 请先在上方拖拽上传数据，或点击体验按钮哦！")
+        st.session_state.chat_history.append({"role": "user", "content": user_input})
+        with st.chat_message("user"):
+            st.markdown(user_input)
+        
+        with st.chat_message("assistant"):
+            # 🌟 Agent 路由：如果提到导出
+            if "导出" in user_input or "报告" in user_input:
+                st.write("🤖 *收到指令！正在调用底层报表引擎为您生成 Word...*")
+                current_ai = st.session_state.chat_history[-2]["content"] if len(st.session_state.chat_history)>1 else "暂无分析"
+                word_data = generate_word_report(df, current_ai, st.session_state.auto_charts[0][1] if st.session_state.auto_charts else None)
+                st.download_button("⬇️ 点击下载刚刚生成的报告", data=word_data, file_name="Agent自动报告.docx")
+            
+            # 🌟 Agent 路由：如果提到画图
+            elif "画图" in user_input or "图表" in user_input:
+                st.write("🤖 *收到指令！正在调用 Plotly 引擎重绘图表...*")
+                if st.session_state.auto_charts:
+                    st.plotly_chart(st.session_state.auto_charts[0][1], use_container_width=True)
+        
+            # 普通聊天/分析
+            else:
+                summary = build_data_summary(df, col_types)
+                recent_history = st.session_state.chat_history[-10:]
+                ai_response = st.write_stream(
+                    call_llm_chat(api_key, model_name, summary, recent_history[:-1], user_input, PROMPT_GENERAL)
+                )
+        st.session_state.chat_history.append({"role": "assistant", "content": "✅ 任务执行成功！"})
+        st.rerun()
 # ==========================================
 # 4. 渲染：有数据时的三栏工作台
 # ==========================================
@@ -176,16 +203,19 @@ if has_data and df is not None:
     st.divider()
     col_left, col_center, col_right = st.columns([1, 2.5, 1.5])
 
-    # 左侧：清洗与指标
     with col_left:
-        with st.container(border=True):
-            st.subheader("🧹 工具箱")
-            st.checkbox("删除完全重复行", value=True)
-            st.checkbox("数值列缺失值填均值", value=True)
-            st.divider()
-            st.metric("数据行数", df.shape[0])
-            st.metric("数据列数", df.shape[1])
-
+    with st.container(border=True):
+        st.subheader("🧹 高级数据清洗")
+        st.markdown("**📝 文本处理**")
+        strip_space = st.checkbox("去除文本首尾空格", value=True)
+        st.markdown("**🩹 缺失值处理**")
+        na_strategy = st.selectbox("处理策略", ["不处理", "删除包含缺失的行", "数值填均值", "数值填中位数"])
+        st.markdown("**🚨 异常值处理**")
+        drop_outliers = st.checkbox("剔除极端异常值(3σ)", value=False)
+        
+        st.divider()
+        st.metric("数据行数", df.shape[0])
+        st.metric("数据列数", df.shape[1])
     # 中间：AI 对话
     with col_center:
         with st.container(border=True):
@@ -213,12 +243,27 @@ if has_data and df is not None:
 
     # 右侧：智能图表
     with col_right:
-        with st.container(border=True):
-            st.subheader("📈 智能图表")
-            if st.session_state.auto_charts:
-                title, fig = st.session_state.auto_charts[0]
-                st.plotly_chart(fig, use_container_width=True)
-            else:
-                st.info("暂无图表")
-            st.divider()
-            st.button("📥 导出标准报告", use_container_width=True, type="primary")
+    with st.container(border=True):
+        st.subheader("📈 智能图表")
+        # 确保 st.session_state.auto_charts 里有图
+        if st.session_state.auto_charts:
+            title, fig = st.session_state.auto_charts[0]
+            st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.info("暂无图表")
+            fig = None
+        st.divider()
+        
+        # 🌟 王炸：Word 导出按钮
+        if st.button("📥 一键生成标准 Word 报表", use_container_width=True, type="primary"):
+            with st.spinner("正在生成企业级诊断报告..."):
+                # 获取当前 AI 的分析结果（如果没有，给个默认的）
+                current_ai = st.session_state.chat_history[-1]["content"] if st.session_state.chat_history else "暂无分析"
+                word_data = generate_word_report(df, current_ai, fig)
+                st.download_button(
+                    label="⬇️ 点击下载 Word 报告.docx",
+                    data=word_data,
+                    file_name="智析_商业分析报告.docx",
+                    mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                    use_container_width=True
+                )
